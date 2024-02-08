@@ -1,17 +1,14 @@
-## Foundry
+## Governance Paymaster
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+** This work was funded by the Ethereum Foundation **
 
-Foundry consists of:
+This repository contains Paymasters that operate fully onchain, meaning there is no centralized backend service to determine whether a transaction should be paid for by the Paymaster (and then the service provides the signature to be included in the `userop`).
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Instead, these Paymasters are purpose built to only pay for specific actions on chain and they determine whether to pay for those actions with logic *completely on-chain*.
 
-## Documentation
+## Paymasters
 
-https://book.getfoundry.sh/
+1. `PaymasterDelegateERC20.sol`: Paymaster that covers the gas cost of `delegate(address)` function used by ERC20 tokens before an owner can vote in their respective DAO. For example, Uniswap DAO is managed by UNI token holders. Those token holders can either vote themselves (by self-delegating) or delegate to another wallet address to vote on their behalf. That `delegate` function call is paid for by this Paymaster.
 
 ## Usage
 
@@ -39,11 +36,6 @@ $ forge fmt
 $ forge snapshot
 ```
 
-### Anvil
-
-```shell
-$ anvil
-```
 
 ### Deploy
 
@@ -51,16 +43,4 @@ $ anvil
 $ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
-### Cast
 
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
