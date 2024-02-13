@@ -7,8 +7,21 @@ import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
 import {UserOperation} from "@account-abstraction/interfaces/UserOperation.sol";
 import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
-import "@account-abstraction/core/Helpers.sol";
-import "@openzeppelin/utils/Strings.sol";
+import {_packValidationData} from "@account-abstraction/core/Helpers.sol";
+
+// Custom errors, as they are more gas efficient than strings
+error MinDayMustBeGreaterThan1Day();
+error IncorrectCallDataLengthOf196Bytes();
+error IncorrectExecuteSignature();
+error InvalidERC20Address();
+error ValueMustBeZero();
+error Data1MustBe0x60();
+error Data2MustBe0x24();
+error IncorrectDelegateSignature();
+error DelegateeCannotBe0x0();
+error SenderOnBlocklist();
+error MaxCostExceedsAllowedAmount(uint256 maxCost);
+error SenderDoesNotHoldAnyERC20Tokens();
 
 /**
  * This paymaster pays for gas when a user delegates their vote to another address.
@@ -17,10 +30,10 @@ import "@openzeppelin/utils/Strings.sol";
  */
 contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
     // max ETH, in Wei, that the paymaster is willing to pay for the operation
-    // TODO: this shouldn't need to be higher than say 0.01 ETH.
-    // but initial txn failing if not. Need to investigate
+    // This shouldn't need to be higher than say 0.01 ETH.
+    // but it needs to also cover initial deployment in some cases, so it's set to a higher amount.
     uint256 private _maxCostAllowed = 300_000_000_000_000_000; // 0.3 ETH
-    uint256 private _minWaitBetweenDelegations = 30 days;
+    uint256 private _minWaitBetweenDelegations = 90 days;
     address private _erc20Address;
 
     // blocklist - tracks any address whose transaction reverts
@@ -28,6 +41,7 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
 
     // Track the last known delegation happened from this account
     mapping(address => uint256) public lastDelegationTimestamp;
+
 
     constructor(IEntryPoint _entryPoint, address ERC20Address) BasePaymaster(_entryPoint) Ownable(msg.sender) {
         // solhint-disable avoid-tx-origin
@@ -59,7 +73,7 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
     }
 
     function updateMinWaitBetweenDelegations(uint256 minWait) public onlyOwner {
-        require(minWait > 1 days, "minWait must be greater than 1 day");
+        if (minWait < 1 days) revert MinDayMustBeGreaterThan1Day();
         _minWaitBetweenDelegations = minWait;
     }
 
@@ -82,30 +96,28 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
      */
     function _verifyCallDataForDelegateAction(bytes calldata callData) internal view {
         // check length
-        require(callData.length == 196, "callData must be 196 bytes");
+        if (callData.length != 196) revert IncorrectCallDataLengthOf196Bytes();
 
         // extract initial `execute` signature. Need to extract this separately because of the way abi.decode works
         bytes4 executeSig = bytes4(callData[:4]);
-        require(executeSig == bytes4(keccak256("execute(address,uint256,bytes)")), "incorrect execute signature");
+        if (executeSig != bytes4(keccak256("execute(address,uint256,bytes)"))) revert IncorrectExecuteSignature();
 
         // extract rest of info from callData
         (address toAddress, bytes32 value, bytes32 data1, bytes32 data2) =
             abi.decode(callData[4:132], (address, bytes32, bytes32, bytes32));
         bytes4 delegateHash = bytes4(callData[132:136]);
         address delegatee = abi.decode(callData[136:168], (address));
-        // note that there is additional 28 bytes of filler data at the end
+        // note that there is additional 28 bytes of filler data at the end that we ignore
 
         // check each one
-        require(toAddress == _erc20Address, "address needs to point to the ERC20 token address");
-        require(value == 0, "value needs to be 0"); // no need to send any money to paymaster, nor can it accept any
-        require(
-            data1 == hex"0000000000000000000000000000000000000000000000000000000000000060", "data1 needs to be 0x60"
-        );
-        require(
-            data2 == hex"0000000000000000000000000000000000000000000000000000000000000024", "data2 needs to be 0x24"
-        );
-        require(bytes4(delegateHash) == bytes4(keccak256("delegate(address)")), "incorrect delegate signature");
-        require(delegatee != address(0), "delegatee cannot be 0x0");
+        if (toAddress != _erc20Address) revert InvalidERC20Address();
+        if (value != 0) revert ValueMustBeZero();
+        if (toAddress != _erc20Address) revert InvalidERC20Address();
+        if (value != 0) revert ValueMustBeZero();
+        if (data1 != hex"0000000000000000000000000000000000000000000000000000000000000060") revert Data1MustBe0x60();
+        if (data2 != hex"0000000000000000000000000000000000000000000000000000000000000024") revert Data2MustBe0x24();
+        if (bytes4(delegateHash) != bytes4(keccak256("delegate(address)"))) revert IncorrectDelegateSignature();
+        if (delegatee == address(0)) revert DelegateeCannotBe0x0();
     }
 
     /**
@@ -116,7 +128,7 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
     function _verifyERC20Holdings(address sender) internal view {
         IERC20 token = IERC20(_erc20Address);
         uint256 tokenBalance = token.balanceOf(sender);
-        require(tokenBalance > 0, "sender does not hold any ERC20 Tokens");
+        if (tokenBalance == 0) revert SenderDoesNotHoldAnyERC20Tokens();
     }
 
     /**
@@ -131,10 +143,10 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
         returns (bytes memory context, uint256 validationData)
     {
         // check maxCost is less than _maxCostAllowed
-        require(maxCost < _maxCostAllowed, string.concat(Strings.toString(maxCost), " maxCost exceeds allowed amount"));
+        if (maxCost > _maxCostAllowed) revert MaxCostExceedsAllowedAmount(maxCost);
 
         // check if the user is in the blocklist
-        require(!blocklist[userOp.sender], "user is in the blocklist");
+        if (blocklist[userOp.sender]) revert SenderOnBlocklist();
 
         // verify that calldata is accuarate.
         _verifyCallDataForDelegateAction(userOp.callData);
@@ -145,12 +157,19 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
         // calculate minTimestamp that the user can delegate again
         // since this function doesn't know block.timestamp, it sets the minimum valid time to be
         // lastDelegationTimestamp + _minWaitBetweenDelegations
+        // if the user has never delegated before, then it sets validAfter to be in the past
+        // if the user has delegated before, it will ensure validAfter is at least _minWaitBetweenDelegations after the last delegation
         uint256 validAfter = lastDelegationTimestamp[userOp.sender] + _minWaitBetweenDelegations;
 
-        // TODO: confirm if validAfter is 30 days away, does the Bundler holds it until then? Or does it
-        // have an expiration?
-        // TODO: should we set validUntil to be 30 mins after validAfter?
-        return (abi.encode(userOp.sender), _packValidationData(false, uint48(0), uint48(validAfter)));
+        // set validUntil to 0, which means no time limit on the transaction
+        uint256 validUntil = 0;
+        
+        // but if the user has delegated before, set validAfter to be 30 minutes from validAfter
+        // this is an optimization, might not be necessary either.
+        if (lastDelegationTimestamp[userOp.sender] > 0) {
+            validUntil = validAfter + 30 minutes;
+        }
+        return (abi.encode(userOp.sender), _packValidationData(false, uint48(validUntil), uint48(validAfter)));
     }
 
     /*

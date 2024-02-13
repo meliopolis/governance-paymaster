@@ -20,8 +20,10 @@ $ forge build
 
 ### Test
 
+We use the `--via-ir` flag to avoid `stack too deep` errors.
+
 ```shell
-$ forge test
+$ forge test --via-ir
 ```
 
 ### Format
