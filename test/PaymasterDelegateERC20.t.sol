@@ -163,14 +163,16 @@ contract PaymasterDelegateERC20Test is Test {
     }
 
     function test_callDataIncorrectExecuteSig() public {
-        bytes memory incorrectCallData = bytes.concat(hex"03033003", // incorrect execute signature
+        bytes memory incorrectCallData = bytes.concat(
+            hex"03033003", // incorrect execute signature
             sampleERC20Address,
             correctValue,
             correctData1,
             correctData2,
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         vm.expectRevert(IncorrectExecuteSignature.selector);
         paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
     }
@@ -184,7 +186,8 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         vm.expectRevert(InvalidERC20Address.selector);
         paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
     }
@@ -198,7 +201,8 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         vm.expectRevert(ValueMustBeZero.selector);
         paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
     }
@@ -212,7 +216,8 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         vm.expectRevert(Data1MustBe0x60.selector);
         paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
     }
@@ -226,7 +231,8 @@ contract PaymasterDelegateERC20Test is Test {
             hex"0000000000000000000000000000000000000000000000000000000000000025", // incorrect data2 (0x24)
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         vm.expectRevert(Data2MustBe0x24.selector);
         paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
     }
@@ -240,7 +246,8 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             hex"5c19a95d", // incorrect "delegate" signature
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         vm.expectRevert(IncorrectDelegateSignature.selector);
         paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
     }
@@ -254,7 +261,8 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             correctDelegateSig,
             hex"0000000000000000000000000000000000000000000000000000000000000000", // delegatee
-            correctFiller);
+            correctFiller
+        );
         vm.expectRevert(DelegateeCannotBe0x0.selector);
         paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
     }
@@ -272,7 +280,8 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         UserOperation memory userOp = _userOpsHelper(callData, owner);
         vm.prank(owner);
         paymasterHarness.pause();
@@ -289,7 +298,8 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         UserOperation memory userOp = _userOpsHelper(callData, owner);
         uint256 maxCost = paymasterHarness.getMaxCostAllowed() + 1;
         vm.expectRevert(abi.encodeWithSelector(MaxCostExceedsAllowedAmount.selector, maxCost));
@@ -300,7 +310,7 @@ contract PaymasterDelegateERC20Test is Test {
     function test_validatePaymasterUserOpUserOnBlocklist() public {
         // add Alice to blocklist
         paymasterHarness.exposed_postOp(IPaymaster.PostOpMode.opReverted, abi.encode(alice));
-        
+
         bytes memory callData = bytes.concat(
             correctExecuteSig,
             bytes32(uint256(uint160(address(erc20)))),
@@ -309,7 +319,8 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         UserOperation memory userOp = _userOpsHelper(callData, alice);
         vm.expectRevert(SenderOnBlocklist.selector);
         paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
@@ -322,7 +333,7 @@ contract PaymasterDelegateERC20Test is Test {
         // give alice some erc20 tokens
         vm.prank(owner);
         erc20.mint(alice, 100);
-        
+
         bytes memory callData = bytes.concat(
             correctExecuteSig,
             bytes32(uint256(uint160(address(erc20)))),
@@ -331,7 +342,8 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         UserOperation memory userOp = _userOpsHelper(callData, alice);
         (bytes memory context, uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
         (address caller) = abi.decode(context, (address));
@@ -341,7 +353,10 @@ contract PaymasterDelegateERC20Test is Test {
         uint48 validAfter = uint48(validationData >> (160 + 48));
         require(validation == address(0), "validation should be 0");
         require(validUntil == 0, "validUntil should be 0");
-        require(validAfter == uint48(paymasterHarness.getMinWaitBetweenDelegations()), "validAfter should be minWaitBetweenDelegations");
+        require(
+            validAfter == uint48(paymasterHarness.getMinWaitBetweenDelegations()),
+            "validAfter should be minWaitBetweenDelegations"
+        );
     }
 
     function test_validatePaymasterUserOpValidationDataAfterPostOpSucceeded() public {
@@ -356,7 +371,7 @@ contract PaymasterDelegateERC20Test is Test {
         // pretend first call went through
         paymasterHarness.exposed_postOp(IPaymaster.PostOpMode.opSucceeded, abi.encode(alice));
 
-        // call once        
+        // call once
         bytes memory callData = bytes.concat(
             correctExecuteSig,
             bytes32(uint256(uint160(address(erc20)))),
@@ -365,22 +380,25 @@ contract PaymasterDelegateERC20Test is Test {
             correctData2,
             correctDelegateSig,
             sampleDelegatee,
-            correctFiller);
+            correctFiller
+        );
         UserOperation memory userOp = _userOpsHelper(callData, alice);
-        
+
         // call second time
         vm.warp(30012);
-        ( , uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
+        (, uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
         address validation = address(uint160(validationData));
         uint48 validUntil = uint48(validationData >> 160);
         uint48 validAfter = uint48(validationData >> (160 + 48));
         require(validation == address(0), "validation should be 0");
-        require (validUntil == validAfter + 30 minutes, "validUntil should be validAfter + 30 minutes");
-        require (validAfter == uint48(timeStamp + paymasterHarness.getMinWaitBetweenDelegations()), "validAfter should be timestamp + paymaster.getMinWaitBetweenDelegations");
+        require(validUntil == validAfter + 30 minutes, "validUntil should be validAfter + 30 minutes");
+        require(
+            validAfter == uint48(timeStamp + paymasterHarness.getMinWaitBetweenDelegations()),
+            "validAfter should be timestamp + paymaster.getMinWaitBetweenDelegations"
+        );
     }
 
     /*
      * postOp Tests: same as above two tests, so not repeating here
      */
-
 }

@@ -17,10 +17,11 @@ contract PaymasterDelegateERC20Harness is PaymasterDelegateERC20 {
         return super._verifyCallDataForDelegateAction(callData);
     }
 
-    function exposed_validaterPaymasterUserOp(
-        UserOperation calldata userOp, 
-        uint256 maxCost
-    ) public view returns (bytes memory, uint256) {
+    function exposed_validaterPaymasterUserOp(UserOperation calldata userOp, uint256 maxCost)
+        public
+        view
+        returns (bytes memory, uint256)
+    {
         return super._validatePaymasterUserOp(userOp, 0x0, maxCost);
     }
 
