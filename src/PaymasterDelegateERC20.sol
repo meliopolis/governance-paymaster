@@ -42,7 +42,6 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
     // Track the last known delegation happened from this account
     mapping(address => uint256) public lastDelegationTimestamp;
 
-
     constructor(IEntryPoint _entryPoint, address ERC20Address) BasePaymaster(_entryPoint) Ownable(msg.sender) {
         // solhint-disable avoid-tx-origin
         if (tx.origin != msg.sender) {
@@ -91,7 +90,7 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
      *  0000000000000000000000000000000000000000000000000000000000000060 data1
      *  0000000000000000000000000000000000000000000000000000000000000024 data2
      *  5c19a95c "delegate" hash
-     *  000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676 delgatee
+     *  000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676 delegatee
      *  00000000000000000000000000000000000000000000000000000000 filler
      */
     function _verifyCallDataForDelegateAction(bytes calldata callData) internal view {
@@ -163,7 +162,7 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
 
         // set validUntil to 0, which means no time limit on the transaction
         uint256 validUntil = 0;
-        
+
         // but if the user has delegated before, set validAfter to be 30 minutes from validAfter
         // this is an optimization, might not be necessary either.
         if (lastDelegationTimestamp[userOp.sender] > 0) {
