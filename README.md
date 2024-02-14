@@ -6,9 +6,25 @@ This repository contains Paymasters that operate fully onchain, meaning there is
 
 Instead, these Paymasters are purpose built to only pay for specific actions on chain and they determine whether to pay for those actions with logic *completely on-chain*.
 
-## Paymasters
+## Usage
 
-1. `PaymasterDelegateERC20.sol`: Paymaster that covers the gas cost of `delegate(address)` function used by ERC20 tokens before an owner can vote in their respective DAO. For example, Uniswap DAO is managed by UNI token holders. Those token holders can either vote themselves (by self-delegating) or delegate to another wallet address to vote on their behalf. That `delegate` function call is paid for by this Paymaster.
+### Build
+
+```shell
+$ forge build
+```
+
+### Test
+
+We use the `--via-ir` flag to avoid `stack too deep` errors.
+
+```shell
+$ forge test --via-ir
+```
+
+## `PaymasterDelegateERC20.sol`
+
+This paymaster that covers the gas cost of `delegate(address)` function used by ERC20 tokens before an owner can vote in their respective DAO. For example, Uniswap DAO is managed by UNI token holders. Those token holders can either vote themselves (by self-delegating) or delegate to another wallet address to vote on their behalf. That `delegate` function call is paid for by this Paymaster.
 
 ### Considerations
 
@@ -38,33 +54,30 @@ Other What Ifs
 
 * What if there is a dishonest bundler who submits fake transactions? Then, that bundler will get penalized by EntryPoint when the transaction fails during EntryPoint's simulation
 
-### Other Notes
+### Storage access rules
 
-* Does this paymaster respect all the storage access rules? Yes! The Paymaster only accesses ERC20 Token balance, which is allowed by the (rule #3 in the specifications)[https://eips.ethereum.org/EIPS/eip-4337#storage-associated-with-an-address]. Additionally, the Paymaster accesses its own storage and that requires it to stake with EntryPoint (which our deploy script handles).
+One of the reasons on-chain Paymasters are challenging to build is due to strict storage access rules that prevent attacks.
 
-## Usage
+This paymaster respects all the storage access rules. It only accesses ERC20 Token balance, which is allowed by the [rule #3 in the specifications](https://eips.ethereum.org/EIPS/eip-4337#storage-associated-with-an-address). Additionally, the Paymaster accesses its own storage and that requires it to stake with EntryPoint (which our deploy script handles).
 
-### Build
+### Gas costs
 
-```shell
-$ forge build
-```
-
-### Test
-
-We use the `--via-ir` flag to avoid `stack too deep` errors.
-
-```shell
-$ forge test --via-ir
-```
-
+TODO
 
 ### Deploy
 
 Copy `.env.example` to `.env` and update all the variables with your details: `PRIVATE_KEY`, `PUBLIC_KEY`, `ETHERSCAN_API_KEY` and `${chainID}_RPC_URL`.
 
+This will also `deposit` and `stake` ETH with `Entrypoint`.
+
 ```shell
 $ forge script PaymasterDelegateERC20Script --rpc-url $SEPOLIA_RPC_URL --broadcast --etherscan-api-key $ETHERSCAN_API_KEY --verify -vvvv
 ```
 
+### Sample Transactions
 
+TODO: add a link to Sepolia Transaction
+
+## Questions/Comments
+
+You are welcome to open Issues for any comments or reach us on [Twitter/X](https://twitter.com/aseemsood_).
