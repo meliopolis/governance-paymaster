@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
-import "@account-abstraction/interfaces/IPaymaster.sol";
-import "./ERC20.t.sol";
-import "./PaymasterDelegateERC20Harness.t.sol";
+import {Test} from "forge-std/Test.sol";
+import {UserOperation} from "@account-abstraction/interfaces/UserOperation.sol";
+import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
+import {IPaymaster} from "@account-abstraction/interfaces/IPaymaster.sol";
+import {Ownable} from "@openzeppelin/access/Ownable.sol";
+import {ERC20Test} from "./ERC20.t.sol";
+import {PaymasterDelegateERC20Harness} from "./PaymasterDelegateERC20Harness.t.sol";
+// solhint-disable-next-line no-global-import
 import "../src/PaymasterDelegateERC20.sol";
+
+// solhint-disable func-name-mixedcase
+// solhint-disable custom-errors
 
 contract PaymasterDelegateERC20Test is Test {
     PaymasterDelegateERC20 public paymaster;
@@ -14,36 +21,21 @@ contract PaymasterDelegateERC20Test is Test {
     address public owner = vm.envAddress("PUBLIC_KEY");
     address public entryPointAddress = vm.envAddress("ENTRY_POINT");
     address public alice = address(0x1);
-    address public bob = address(0x2);
 
-    // bytes correctCallData = hex"b61d27f6" // execute signature
-    //     hex"0000000000000000000000001f9840a85d5af5bf1d1762f925bdaddc4201f984" // ERC20 token address
-    //     hex"0000000000000000000000000000000000000000000000000000000000000000" // value (payment)
-    //     hex"0000000000000000000000000000000000000000000000000000000000000060" // data1 (0x60)
-    //     hex"0000000000000000000000000000000000000000000000000000000000000024" // data2 (0x24)
-    //     hex"5c19a95c" // "delegate" signature
-    //     hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676" // delegatee
-    //     hex"00000000000000000000000000000000000000000000000000000000"; // filler
+    bytes public correctCallData;
+    // Note: Can't use all these individual variables below, as it triggers "Stack too deep" errors
+    // which can be handled with --via-ir flag but that breaks verification on Etherscan.
+    // According to Foundry docs, we should be able to compile by ignoring the `test` folder
+    // but in practice, that doesn't seem to work for me.
 
-    bytes public correctExecuteSig = hex"b61d27f6"; // execute signature
-    bytes public sampleERC20Address = hex"0000000000000000000000001f9840a85d5af5bf1d1762f925bdaddc4201f984"; // ERC20 token address
-    bytes public correctValue = hex"0000000000000000000000000000000000000000000000000000000000000000"; // value (payment)
-    bytes public correctData1 = hex"0000000000000000000000000000000000000000000000000000000000000060"; // data1 (0x60)
-    bytes public correctData2 = hex"0000000000000000000000000000000000000000000000000000000000000024"; // data2 (0x24)
-    bytes public correctDelegateSig = hex"5c19a95c"; // "delegate" signature
-    bytes public sampleDelegatee = hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676"; // delegatee
-    bytes public correctFiller = hex"00000000000000000000000000000000000000000000000000000000"; // filler
-
-    // bytes correctCallData = bytes.concat(
-    //     executeSig,
-    //     sampleERC20Address,
-    //     value,
-    //     data1,
-    //     data2,
-    //     delegateSig,
-    //     sampleDelegatee,
-    //     filler
-    // );
+    // bytes public correctExecuteSig = hex"b61d27f6"; // execute signature
+    // bytes public sampleERC20Address = hex"0000000000000000000000001f9840a85d5af5bf1d1762f925bdaddc4201f984"; // ERC20 token address
+    // bytes public correctValue = hex"0000000000000000000000000000000000000000000000000000000000000000"; // value (payment)
+    // bytes public correctData1 = hex"0000000000000000000000000000000000000000000000000000000000000060"; // data1 (0x60)
+    // bytes public correctData2 = hex"0000000000000000000000000000000000000000000000000000000000000024"; // data2 (0x24)
+    // bytes public correctDelegateSig = hex"5c19a95c"; // "delegate" signature
+    // bytes public sampleDelegatee = hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676"; // delegatee
+    // bytes public correctFiller = hex"00000000000000000000000000000000000000000000000000000000"; // filler
 
     /*
      * Setup
@@ -54,6 +46,16 @@ contract PaymasterDelegateERC20Test is Test {
         erc20 = new ERC20Test();
         paymaster = new PaymasterDelegateERC20(entryPoint, address(erc20));
         paymasterHarness = new PaymasterDelegateERC20Harness(entryPoint, address(erc20));
+        correctCallData = bytes.concat(
+            hex"b61d27f6", // execute signature
+            bytes32(uint256(uint160(address(erc20)))),
+            hex"0000000000000000000000000000000000000000000000000000000000000000" // value (payment)
+            hex"0000000000000000000000000000000000000000000000000000000000000060" // data1 (0x60)
+            hex"0000000000000000000000000000000000000000000000000000000000000024" // data2 (0x24)
+            hex"5c19a95c" // "delegate" signature
+            hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676" // delegatee
+            hex"00000000000000000000000000000000000000000000000000000000" // filler
+        );
         vm.stopPrank();
         // vm.roll(30000);
         // vm.warp(360000);
@@ -163,108 +165,104 @@ contract PaymasterDelegateERC20Test is Test {
     }
 
     function test_callDataIncorrectExecuteSig() public {
-        bytes memory incorrectCallData = bytes.concat(
-            hex"03033003", // incorrect execute signature
-            sampleERC20Address,
-            correctValue,
-            correctData1,
-            correctData2,
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
-        );
+        bytes memory callDataWithIncorrectExecuteSig = hex"03033003" // incorrect execute signature
+            hex"0000000000000000000000001f9840a85d5af5bf1d1762f925bdaddc4201f984" // ERC20 token address
+            hex"0000000000000000000000000000000000000000000000000000000000000000" // value (payment)
+            hex"0000000000000000000000000000000000000000000000000000000000000060" // data1 (0x60)
+            hex"0000000000000000000000000000000000000000000000000000000000000024" // data2 (0x24)
+            hex"5c19a95c" // "delegate" signature
+            hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676" // delegatee
+            hex"00000000000000000000000000000000000000000000000000000000"; // filler
         vm.expectRevert(IncorrectExecuteSignature.selector);
-        paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
+        paymasterHarness.exposed_verifyCallDataForDelegateAction(callDataWithIncorrectExecuteSig);
     }
 
     function test_callDataIncorrectERC20Address() public {
-        bytes memory incorrectCallData = bytes.concat(
-            correctExecuteSig,
-            sampleERC20Address,
-            correctValue,
-            correctData1,
-            correctData2,
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
-        );
+        bytes memory callDataWithIncorrectERC20Address = hex"b61d27f6" // execute signature
+            hex"0000000000000000000000001f9840a85d5af5bf1d1762f925bdaddc4201f984" // incorrect ERC20 token address
+            hex"0000000000000000000000000000000000000000000000000000000000000000" // value (payment)
+            hex"0000000000000000000000000000000000000000000000000000000000000060" // data1 (0x60)
+            hex"0000000000000000000000000000000000000000000000000000000000000024" // data2 (0x24)
+            hex"5c19a95c" // "delegate" signature
+            hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676" // delegatee
+            hex"00000000000000000000000000000000000000000000000000000000"; // filler
         vm.expectRevert(InvalidERC20Address.selector);
-        paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
+        paymasterHarness.exposed_verifyCallDataForDelegateAction(callDataWithIncorrectERC20Address);
     }
 
     function test_callDataIncorrectValue() public {
-        bytes memory incorrectCallData = bytes.concat(
-            correctExecuteSig,
+        bytes memory callDataWithIncorrectValue = bytes.concat(
+            hex"b61d27f6",
             bytes32(uint256(uint160(address(erc20)))),
             hex"0000000000000000000000000000000000000000000000000000000000000001", // incorrect value (payment)
-            correctData1,
-            correctData2,
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
+            hex"0000000000000000000000000000000000000000000000000000000000000060" // data1 (0x60)
+            hex"0000000000000000000000000000000000000000000000000000000000000024" // data2 (0x24)
+            hex"5c19a95c" // "delegate" signature
+            hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676" // delegatee
+            hex"00000000000000000000000000000000000000000000000000000000"
         );
         vm.expectRevert(ValueMustBeZero.selector);
-        paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
+        paymasterHarness.exposed_verifyCallDataForDelegateAction(callDataWithIncorrectValue);
     }
 
     function test_callDataIncorrectData1() public {
-        bytes memory incorrectCallData = bytes.concat(
-            correctExecuteSig,
+        bytes memory callDataWithIncorrectData1 = bytes.concat(
+            hex"b61d27f6",
             bytes32(uint256(uint160(address(erc20)))),
-            correctValue,
-            hex"0000000000000000000000000000000000000000000000000000000000000061", // incorrect data1 (0x60)
-            correctData2,
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
+            hex"0000000000000000000000000000000000000000000000000000000000000000", // incorrect value (payment)
+            hex"0000000000000000000000000000000000000000000000000000000000000061", // data1 (0x60)
+            hex"0000000000000000000000000000000000000000000000000000000000000024" // data2 (0x24)
+            hex"5c19a95c" // "delegate" signature
+            hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676" // delegatee
+            hex"00000000000000000000000000000000000000000000000000000000"
         );
         vm.expectRevert(Data1MustBe0x60.selector);
-        paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
+        paymasterHarness.exposed_verifyCallDataForDelegateAction(callDataWithIncorrectData1);
     }
 
     function test_callDataIncorrectData2() public {
-        bytes memory incorrectCallData = bytes.concat(
-            correctExecuteSig,
+        bytes memory callDataWithIncorrectData2 = bytes.concat(
+            hex"b61d27f6",
             bytes32(uint256(uint160(address(erc20)))),
-            correctValue,
-            correctData1,
-            hex"0000000000000000000000000000000000000000000000000000000000000025", // incorrect data2 (0x24)
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
+            hex"0000000000000000000000000000000000000000000000000000000000000000" // incorrect value (payment)
+            hex"0000000000000000000000000000000000000000000000000000000000000060", // data1 (0x60)
+            hex"0000000000000000000000000000000000000000000000000000000000000025", // data2 (0x24)
+            hex"5c19a95c" // "delegate" signature
+            hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676" // delegatee
+            hex"00000000000000000000000000000000000000000000000000000000"
         );
         vm.expectRevert(Data2MustBe0x24.selector);
-        paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
+        paymasterHarness.exposed_verifyCallDataForDelegateAction(callDataWithIncorrectData2);
     }
 
     function test_callDataIncorrectDelegateSig() public {
-        bytes memory incorrectCallData = bytes.concat(
-            correctExecuteSig,
+        bytes memory callDataWithIncorrectDelegateSig = bytes.concat(
+            hex"b61d27f6",
             bytes32(uint256(uint160(address(erc20)))),
-            correctValue,
-            correctData1,
-            correctData2,
-            hex"5c19a95d", // incorrect "delegate" signature
-            sampleDelegatee,
-            correctFiller
+            hex"0000000000000000000000000000000000000000000000000000000000000000" // incorrect value (payment)
+            hex"0000000000000000000000000000000000000000000000000000000000000060" // data1 (0x60)
+            hex"0000000000000000000000000000000000000000000000000000000000000024", // data2 (0x24)
+            hex"5c19a95d", // "delegate" signature
+            hex"000000000000000000000000b6c7ff166b0d27aa6132673838995f0fa68c7676" // delegatee
+            hex"00000000000000000000000000000000000000000000000000000000"
         );
         vm.expectRevert(IncorrectDelegateSignature.selector);
-        paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
+        paymasterHarness.exposed_verifyCallDataForDelegateAction(callDataWithIncorrectDelegateSig);
     }
 
     function test_callDataDelegateeIs0x0Address() public {
-        bytes memory incorrectCallData = bytes.concat(
-            correctExecuteSig,
+        bytes memory callDataWithIncorrectDelegatee = bytes.concat(
+            hex"b61d27f6",
             bytes32(uint256(uint160(address(erc20)))),
-            correctValue,
-            correctData1,
-            correctData2,
-            correctDelegateSig,
+            hex"0000000000000000000000000000000000000000000000000000000000000000" // incorrect value (payment)
+            hex"0000000000000000000000000000000000000000000000000000000000000060" // data1 (0x60)
+            hex"0000000000000000000000000000000000000000000000000000000000000024" // data2 (0x24)
+            hex"5c19a95c", // "delegate" signature
             hex"0000000000000000000000000000000000000000000000000000000000000000", // delegatee
-            correctFiller
+            hex"00000000000000000000000000000000000000000000000000000000"
         );
         vm.expectRevert(DelegateeCannotBe0x0.selector);
-        paymasterHarness.exposed_verifyCallDataForDelegateAction(incorrectCallData);
+        paymasterHarness.exposed_verifyCallDataForDelegateAction(callDataWithIncorrectDelegatee);
     }
 
     /*
@@ -272,17 +270,7 @@ contract PaymasterDelegateERC20Test is Test {
      */
 
     function test_validatePaymasterUserOpPaused() public {
-        bytes memory callData = bytes.concat(
-            correctExecuteSig,
-            bytes32(uint256(uint160(address(erc20)))),
-            correctValue,
-            correctData1,
-            correctData2,
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
-        );
-        UserOperation memory userOp = _userOpsHelper(callData, owner);
+        UserOperation memory userOp = _userOpsHelper(correctCallData, owner);
         vm.prank(owner);
         paymasterHarness.pause();
         vm.expectRevert(Pausable.EnforcedPause.selector);
@@ -290,17 +278,7 @@ contract PaymasterDelegateERC20Test is Test {
     }
 
     function test_validatePaymasterUserOpMaxCostTooHigh() public {
-        bytes memory callData = bytes.concat(
-            correctExecuteSig,
-            bytes32(uint256(uint160(address(erc20)))),
-            correctValue,
-            correctData1,
-            correctData2,
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
-        );
-        UserOperation memory userOp = _userOpsHelper(callData, owner);
+        UserOperation memory userOp = _userOpsHelper(correctCallData, owner);
         uint256 maxCost = paymasterHarness.getMaxCostAllowed() + 1;
         vm.expectRevert(abi.encodeWithSelector(MaxCostExceedsAllowedAmount.selector, maxCost));
         paymasterHarness.exposed_validaterPaymasterUserOp(userOp, maxCost);
@@ -310,18 +288,7 @@ contract PaymasterDelegateERC20Test is Test {
     function test_validatePaymasterUserOpUserOnBlocklist() public {
         // add Alice to blocklist
         paymasterHarness.exposed_postOp(IPaymaster.PostOpMode.opReverted, abi.encode(alice));
-
-        bytes memory callData = bytes.concat(
-            correctExecuteSig,
-            bytes32(uint256(uint160(address(erc20)))),
-            correctValue,
-            correctData1,
-            correctData2,
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
-        );
-        UserOperation memory userOp = _userOpsHelper(callData, alice);
+        UserOperation memory userOp = _userOpsHelper(correctCallData, alice);
         vm.expectRevert(SenderOnBlocklist.selector);
         paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
     }
@@ -333,18 +300,7 @@ contract PaymasterDelegateERC20Test is Test {
         // give alice some erc20 tokens
         vm.prank(owner);
         erc20.mint(alice, 100);
-
-        bytes memory callData = bytes.concat(
-            correctExecuteSig,
-            bytes32(uint256(uint160(address(erc20)))),
-            correctValue,
-            correctData1,
-            correctData2,
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
-        );
-        UserOperation memory userOp = _userOpsHelper(callData, alice);
+        UserOperation memory userOp = _userOpsHelper(correctCallData, alice);
         (bytes memory context, uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
         (address caller) = abi.decode(context, (address));
         assert(caller == alice);
@@ -355,7 +311,7 @@ contract PaymasterDelegateERC20Test is Test {
         require(validUntil == 0, "validUntil should be 0");
         require(
             validAfter == uint48(paymasterHarness.getMinWaitBetweenDelegations()),
-            "validAfter should be minWaitBetweenDelegations"
+            "validAfter != minWait"
         );
     }
 
@@ -371,30 +327,18 @@ contract PaymasterDelegateERC20Test is Test {
         // pretend first call went through
         paymasterHarness.exposed_postOp(IPaymaster.PostOpMode.opSucceeded, abi.encode(alice));
 
-        // call once
-        bytes memory callData = bytes.concat(
-            correctExecuteSig,
-            bytes32(uint256(uint160(address(erc20)))),
-            correctValue,
-            correctData1,
-            correctData2,
-            correctDelegateSig,
-            sampleDelegatee,
-            correctFiller
-        );
-        UserOperation memory userOp = _userOpsHelper(callData, alice);
-
         // call second time
+        UserOperation memory userOp = _userOpsHelper(correctCallData, alice);
         vm.warp(30012);
         (, uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
         address validation = address(uint160(validationData));
         uint48 validUntil = uint48(validationData >> 160);
         uint48 validAfter = uint48(validationData >> (160 + 48));
         require(validation == address(0), "validation should be 0");
-        require(validUntil == validAfter + 30 minutes, "validUntil should be validAfter + 30 minutes");
+        require(validUntil == validAfter + 30 minutes, "validUntil != validAfter+30mins");
         require(
             validAfter == uint48(timeStamp + paymasterHarness.getMinWaitBetweenDelegations()),
-            "validAfter should be timestamp + paymaster.getMinWaitBetweenDelegations"
+            "validAfter != timestamp+minWait"
         );
     }
 

@@ -11,13 +11,14 @@ import {BasePaymaster} from "account-abstraction/core/BasePaymaster.sol";
 import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
 
 // To run:
-// forge script AbandonScript --rpc-url $SEPOLIA_RPC_URL --broadcast --via-ir --skip test
+// forge script AbandonScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --skip test 
+// to broadcast, add --broadcast flag
+
 // Note: this may need to be run multiple times to fully abandon a paymaster.
 // First run will unlock stake if needed and second run will withdraw deposit and stake.
 
 contract AbandonScript is Script {
     function run() external {
-        uint256 privateKey = vm.envUint("PRIVATE_KEY");
         address publicKey = vm.envAddress("PUBLIC_KEY");
         address paymasterAddress = vm.envAddress("PAYMASTER");
         
@@ -28,7 +29,7 @@ contract AbandonScript is Script {
         
         // get deposit and stake info
         IStakeManager.DepositInfo memory depositInfo = entryPoint.getDepositInfo(paymasterAddress);
-        vm.startBroadcast(privateKey);
+        vm.startBroadcast();
         
         // case 1: no stake
         if (depositInfo.stake == 0) {

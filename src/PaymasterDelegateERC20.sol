@@ -42,12 +42,12 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
     // Track the last known delegation happened from this account
     mapping(address => uint256) public lastDelegationTimestamp;
 
-    constructor(IEntryPoint _entryPoint, address ERC20Address) BasePaymaster(_entryPoint) Ownable(msg.sender) {
+    constructor(IEntryPoint _entryPoint, address erc20Address) BasePaymaster(_entryPoint) Ownable(msg.sender) {
         // solhint-disable avoid-tx-origin
         if (tx.origin != msg.sender) {
             _transferOwnership(tx.origin);
         }
-        _erc20Address = ERC20Address;
+        _erc20Address = erc20Address;
     }
 
     function pause() external onlyOwner {
