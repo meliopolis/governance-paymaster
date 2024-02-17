@@ -8,27 +8,13 @@ One example of such a Paymaster that requires a backend service: [VerifyingPayma
 
 The Paymasters in this repository are built to only pay for specific actions on-chain and they determine whether to pay for those actions with logic *completely on-chain*. Once deployed, they can operate without requiring any intervention (except perhaps to refill their accounts with `EntryPoint`).
 
-### Usage
-
-#### Build
-
-```shell
-$ forge build
-```
-
-#### Test
-
-```shell
-$ forge test
-```
-
-### Paymaster to cover gas for an ERC20 `delegate(address)` call
+## Paymaster to cover gas for an ERC20 `delegate(address)` call
 
 Code: [PaymasterDelegateERC20.sol](https://github.com/meliopolis/governance-paymaster/blob/main/src/PaymasterDelegateERC20.sol)
 
 This paymaster covers the gas cost of [`delegate(address)`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/governance/utils/Votes.sol#L134) function used by ERC20 tokens. This function usually needs to be called before an owner can vote in their respective DAO. For example, Uniswap DAO is managed by UNI token holders. Those token holders can either delegate to themselves or delegate to another wallet address to vote on their behalf. That [`delegate`](https://etherscan.io/token/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984#writeContract#F2) function call could be paid for by this Paymaster.
 
-#### Methodology
+### Methodology
 
 Main challenge for a fully on-chain paymaster is to cover **only** the transactions specified and avoid getting drained through various different abuse vectors. 
 
@@ -56,7 +42,7 @@ Sample calldata required by this Paymaster:
 
 * One of the features of ERC20 Token standard is that `delegate` function can be called even when token balance is zero. This is a problem as it can mean that anyone can arbitrary call the Paymaster to pay for their `delegate` transaction but it has no useful value to the token ecosystem. Thus, we check the user's balance before validating and only approve if balance is above 0. (And this is within the Storage Access Rules).
 
-#### Other Considerations
+### Other Considerations
 
 * What if the user calls the Paymaster again **immediately** after a successful delegation? The Paymaster records any successful transaction in its own storage but it doesn't know how long it's been since the last transaction (no access to `block.timestamp` in `_validatePaymasterUserOp`). So, it will approve the next request and set the `validAfter` to be 90 days away from the last successful action. (90 days is a modifiable setting in the Paymaster, even after deployment). It's up to the Bundler whether they decide to keep the transaction for that period or discard it given the future date.
 
@@ -70,12 +56,25 @@ Sample calldata required by this Paymaster:
 
 * What if there is a dishonest bundler who submits fake transactions? Then, (in theory), that bundler will get penalized by EntryPoint when the transaction fails during EntryPoint's simulation. TODO: this part is a little unclear to us. Need to talk to more bundlers to understand their implementation.
 
-#### Storage access rules
+### Storage access rules
 
 One of the reasons on-chain Paymasters are challenging to build is due to strict storage access rules that prevent attacks.
 
 This paymaster respects all the storage access rules. It only accesses ERC20 Token balance, which is allowed by the [rule #3 in the specifications](https://eips.ethereum.org/EIPS/eip-4337#storage-associated-with-an-address). Additionally, the Paymaster accesses its own storage and that requires it to stake with EntryPoint (which our deploy script handles).
 
+### Usage
+
+#### Build
+
+```shell
+$ forge build
+```
+
+#### Test
+
+```shell
+$ forge test
+```
 
 #### Deploy
 
@@ -98,17 +97,19 @@ Update `PAYMASTER` variable with the deployed paymaster's address in `.env`. The
 $ forge script AbandonScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --skip test --broadcast 
 ```
 
-#### Sample Transactions & Gas Usage
+### Sample Transactions & Gas Usage
 
 Sample Paymaster deployed at: [0x5faEe2339C65944935DeFd85492948ea6079c745](https://sepolia.etherscan.io/address/0x5faEe2339C65944935DeFd85492948ea6079c745)
+
+We compare calling the `delegate(address)` function from various different wallets.
 
 | Wallet | Sample Txn | Gas Used |
 | ------ | ---------- | -------- |
 | EOA | [Txn](https://sepolia.etherscan.io/tx/0x891fd130f3dfe25e868077bd1b8f7b485c332953bbab81652b62797c7eb070aa) | 95,737 |
-| AA (no Paymaster) - already deployed | [Txn](https://sepolia.etherscan.io/tx/0xb8eecd6f492c453e4a6ec3da20e90a3a3c8464c0a06a9e47d6bf298ea40409c4) | 167,689 |
-| AA (no Paymaster) - not deployed | [Txn](https://sepolia.etherscan.io/tx/0xe0b8e862a01ee660a021bfc9f7b1bbd99cf8700c3a3325d4292dc2135eafa62f) | 452,501 |
-| AA (with PaymasterDelegateERC20) - already deployed | [Txn](https://sepolia.etherscan.io/tx/0xb5fa82c780ac5236782f88ec9cdb80731cdf1e8c67414a10d45ce77ad77d2fc5) | 187,815 |
-| AA (with PaymasterDelegateERC20) - not deployed | [Txn](https://sepolia.etherscan.io/tx/0x853dbded6e5c77617044fa5b79bf585272b869f9a59ec6373fed1e35f4fc2f1e) | 472,650 |
+| AA - already deployed (no Paymaster) | [Txn](https://sepolia.etherscan.io/tx/0xb8eecd6f492c453e4a6ec3da20e90a3a3c8464c0a06a9e47d6bf298ea40409c4) | 167,689 |
+| AA - not deployed (no Paymaster) | [Txn](https://sepolia.etherscan.io/tx/0xe0b8e862a01ee660a021bfc9f7b1bbd99cf8700c3a3325d4292dc2135eafa62f) | 452,501 |
+| AA - already deployed (with PaymasterDelegateERC20) | [Txn](https://sepolia.etherscan.io/tx/0xb5fa82c780ac5236782f88ec9cdb80731cdf1e8c67414a10d45ce77ad77d2fc5) | 187,815 |
+| AA - not deployed (with PaymasterDelegateERC20) | [Txn](https://sepolia.etherscan.io/tx/0x853dbded6e5c77617044fa5b79bf585272b869f9a59ec6373fed1e35f4fc2f1e) | 472,650 |
 
 As you can see, gas usage of AA wallet vs EOA is quite high but the Paymaster itself is a pretty minimal increase in gas usage.
 
