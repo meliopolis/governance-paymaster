@@ -111,8 +111,6 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
         // check each one
         if (toAddress != _erc20Address) revert InvalidERC20Address();
         if (value != 0) revert ValueMustBeZero();
-        if (toAddress != _erc20Address) revert InvalidERC20Address();
-        if (value != 0) revert ValueMustBeZero();
         if (data1 != hex"0000000000000000000000000000000000000000000000000000000000000060") revert Data1MustBe0x60();
         if (data2 != hex"0000000000000000000000000000000000000000000000000000000000000024") revert Data2MustBe0x24();
         if (bytes4(delegateHash) != bytes4(keccak256("delegate(address)"))) revert IncorrectDelegateSignature();
@@ -175,8 +173,7 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
      * Called after the operation has been executed
      */
     function _postOp(PostOpMode mode, bytes calldata context, uint256) internal override {
-        // 1. opSucceeded: do nothing
-        // Record the last delegation timestamp
+        // 1. opSucceeded: record the last delegation timestamp
         if (mode == PostOpMode.opSucceeded) {
             (address caller) = abi.decode(context, (address));
             lastDelegationTimestamp[caller] = block.timestamp;
