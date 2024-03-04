@@ -10,3 +10,6 @@
 [submodule "lib/axiom-std"]
 	path = lib/axiom-std
 	url = https://github.com/axiom-crypto/axiom-std
+[submodule "lib/compound-protocol"]
+	path = lib/compound-protocol
+	url = https://github.com/compound-finance/compound-protocol
