@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-// solhint-disable no-console 
+// solhint-disable no-console
 // solhint-disable custom-errors
 
 import {Script} from "forge-std/Script.sol";
@@ -21,11 +21,11 @@ contract UpdateMaxCostAllowedScript is Script {
     function run() external {
         address paymasterAddress = vm.envAddress("PAYMASTER");
         uint256 newMaxCostAllowed = vm.envUint("MAX_COST_ALLOWED");
-        
+
         // make sure Paymaster address exists
         require(paymasterAddress != address(0), "PAYMASTER not set");
         PaymasterDelegateERC20 pm = PaymasterDelegateERC20(payable(paymasterAddress));
-        
+
         uint256 currentMaxCost = pm.getMaxCostAllowed();
         if (currentMaxCost == newMaxCostAllowed) {
             console.log("Max cost already set to", newMaxCostAllowed);
@@ -36,4 +36,6 @@ contract UpdateMaxCostAllowedScript is Script {
         pm.updateMaxCostAllowed(newMaxCostAllowed);
         vm.stopBroadcast();
     }
+    // add this to be excluded from coverage report
+    function test() public {}
 }
