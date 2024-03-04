@@ -10,6 +10,8 @@ import {IStakeManager} from "account-abstraction/interfaces/IStakeManager.sol";
 import {BasePaymaster} from "account-abstraction/core/BasePaymaster.sol";
 import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
 
+// Note: Make sure you updated DEPOSIT_AMOUNT in the .env file
+
 // To run:
 // forge script IncreaseDepositScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --skip test 
 // to broadcast, add --broadcast flag
