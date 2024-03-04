@@ -8,6 +8,7 @@ import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
 import {UserOperation} from "@account-abstraction/interfaces/UserOperation.sol";
 import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 import {_packValidationData} from "@account-abstraction/core/Helpers.sol";
+import {IUni} from "Uniswap/IUni.sol";
 
 // Custom errors, as they are more gas efficient than strings
 error IncorrectCallDataLengthOf228Bytes();
@@ -93,7 +94,7 @@ contract PaymasterCastVote is BasePaymaster, Pausable {
         bytes4 castVoteHash = bytes4(callData[132:136]);
         // extract proposalId and support
         // Note: there isn't much we can check with proposalId, since we can't access the storage from GovernorBravo
-        (uint256, uint256 support) = abi.decode(callData[136:200], (uint256, uint256));
+        (, uint256 support) = abi.decode(callData[136:200], (uint256, uint256));
         // note that there is additional 28 bytes of filler data at the end that we ignore
 
         // check each one
