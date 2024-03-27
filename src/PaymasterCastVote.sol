@@ -8,7 +8,7 @@ import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
 import {UserOperation} from "@account-abstraction/interfaces/UserOperation.sol";
 import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 import {_packValidationData} from "@account-abstraction/core/Helpers.sol";
-import {IUni} from "Uniswap/IUni.sol";
+import {Uni} from "uniswap-gov/Uni.sol";
 
 // Custom errors, as they are more gas efficient than strings
 error IncorrectCallDataLengthOf228Bytes();
@@ -104,54 +104,6 @@ contract PaymasterCastVote is BasePaymaster, Pausable {
         if (data2 != hex"0000000000000000000000000000000000000000000000000000000000000044") revert Data2MustBe0x44();
         if (bytes4(castVoteHash) != bytes4(keccak256("castVote(uint256,uint8)"))) revert IncorrectCastVoteSignature();
         if (support > 2) revert SupportMustBeLessThanOrEqualToTwo();
-    }
-
-    // Copied this function from UNI contract because first line isn't allowed in the paymaster verification step
-    // https://etherscan.io/address/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984#code#L474
-    /**
-     * @notice Determine the prior number of votes for an account as of a block number
-     * @dev Block number must be a finalized block or else this function will revert to prevent misinformation.
-     * @param account The address of the account to check
-     * @param blockNumber The block number to get the vote balance at
-     * @return The number of votes the account had as of the given block
-     */
-    function getPriorVotes(address account, uint blockNumber) public view returns (uint96) {
-        // following line not allowed due to block.number call
-        // require(blockNumber < block.number, "Uni::getPriorVotes: not yet determined");
-        IUni token = IUni(_erc20Address); // using IUni as the ERC20 interface with support for checkpoints
-        
-        uint32 nCheckpoints = token.numCheckpoints(account);
-        if (nCheckpoints == 0) {
-            return 0;
-        }
-
-        (uint32 fromBlockIndexNminus1, uint96 votesIndexNminus1) = token.checkpoints(account, nCheckpoints - 1);
-        // First check most recent balance
-        if (fromBlockIndexNminus1 <= blockNumber) {
-            return votesIndexNminus1;
-        }
-
-        // Next check implicit zero balance
-        (uint32 fromBlockIndex0, ) = token.checkpoints(account, 0);
-        if (fromBlockIndex0 > blockNumber) {
-            return 0;
-        }
-
-        uint32 lower = 0;
-        uint32 upper = nCheckpoints - 1;
-        while (upper > lower) {
-            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-            (uint32 fromBlock, uint96 votes) = token.checkpoints(account, center);
-            if (fromBlock == blockNumber) {
-                return votes;
-            } else if (fromBlock < blockNumber) {
-                lower = center;
-            } else {
-                upper = center - 1;
-            }
-        }
-        (, uint96 votesIndexLower) = token.checkpoints(account, lower);
-        return votesIndexLower;
     }
 
     /**
