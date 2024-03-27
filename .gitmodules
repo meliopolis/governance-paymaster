@@ -9,7 +9,7 @@
 	url = https://github.com/openzeppelin/openzeppelin-contracts
 [submodule "lib/compound-protocol"]
 	path = lib/compound-protocol
-	url = https://github.com/compound-finance/compound-protocol
+	url = https://github.com/@compound-finance/compound-protocol
 [submodule "lib/uniswap-gov"]
 	path = lib/uniswap-gov
 	url = https://github.com/meliopolis/uniswap-gov
