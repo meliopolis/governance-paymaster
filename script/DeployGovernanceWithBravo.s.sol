@@ -4,18 +4,17 @@ pragma solidity ^0.8.13;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {Uni} from 'uniswap-gov/Uni.sol';
-import {Timelock} from 'uniswap-gov/Timelock.sol';
-import {GovernorBravoDelegate} from 'uniswap-gov/GovernorBravoDelegate.sol';
-import {GovernorBravoDelegator} from 'uniswap-gov/GovernorBravoDelegator.sol';
+import {Uni} from "uniswap-gov/Uni.sol";
+import {Timelock} from "uniswap-gov/Timelock.sol";
+import {GovernorBravoDelegate} from "uniswap-gov/GovernorBravoDelegate.sol";
+import {GovernorBravoDelegator} from "uniswap-gov/GovernorBravoDelegator.sol";
+import {GovernorBravoDelegateStorageV1} from "uniswap-gov/GovernorBravoInterfaces.sol";
 
 // To run:
 // forge script DeployGovernanceWithBravoScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --verify -vv --skip test
 // to broadcast, add --broadcast flag
 
-
 contract DeployGovernanceWithBravoScript is Script {
-
     address public publicKey = vm.envAddress("PUBLIC_KEY");
     uint256 public privateKey = vm.envUint("PRIVATE_KEY");
 
@@ -32,36 +31,32 @@ contract DeployGovernanceWithBravoScript is Script {
         }
     }
 
-    function initialSetup() external {
-
+    function initialSetup(address user1Address, address user2Address) external {
         vm.startBroadcast(this.privateKey());
         console.log("block timestamp: ", block.timestamp);
         // 1. deploy uni token
-        // vm.broadcast();
         Uni uni = new Uni(this.publicKey(), this.publicKey(), block.timestamp);
         console.log("Uni deployed at: ", address(uni));
 
         // 2. deploy timelock
-        // vm.broadcast();
         Timelock timelock = new Timelock(this.publicKey(), 0);
         console.log("Timelock deployed at: ", address(timelock));
-        
+
         // 3. deploy delegate
-        // vm.broadcast();
         GovernorBravoDelegate delegate = new GovernorBravoDelegate();
         console.log("Delegate deployed at: ", address(delegate));
 
-        // 4. deploy delegator    
-        // vm.broadcast();        
+        // 4. deploy delegator
         GovernorBravoDelegator delegator = new GovernorBravoDelegator(
             address(timelock),
             address(uni),
-            this.publicKey(),  // admin
+            this.publicKey(), // admin
             address(delegate),
-            50, // votingPeriod
+            5000, // votingPeriod in blocks
             1, // votingDelay
-            1e18); // proposalThreshold
-        console.log("Delegator deployed at: ", address(delegator));        
+            1e18
+        ); // proposalThreshold
+        console.log("Delegator deployed at: ", address(delegator));
 
         GovernorBravoDelegate delegateInterface = GovernorBravoDelegate(address(delegator));
 
@@ -71,31 +66,28 @@ contract DeployGovernanceWithBravoScript is Script {
 
         vm.stopBroadcast();
 
-        this.tokenActions(uni);
-
+        this.tokenActions(uni, user1Address, user2Address);
     }
 
-    function tokenActions(Uni uni) public {
-
+    function tokenActions(Uni uni, address user1Address, address user2Address) public {
         // 6. transfer uni to other accounts
         vm.startBroadcast(this.privateKey());
-        uni.delegate(vm.envAddress("USER1_ADDRESS"));
-        uni.transferFrom(this.publicKey(), vm.envAddress("USER1_ADDRESS"), 10_000_000_000_000_000_000);
-        uni.transferFrom(this.publicKey(), vm.envAddress("USER2_ADDRESS"), 20_000_000_000_000_000_000);
-        
+        uni.delegate(user1Address);
+        uni.transferFrom(this.publicKey(), user1Address, 10_000_000_000_000_000_000);
+        uni.transferFrom(this.publicKey(), user2Address, 20_000_000_000_000_000_000);
+
         // 7. delegate UNI from those accounts to each other
-        uni.delegate(vm.envAddress("USER2_ADDRESS"));
+        uni.delegate(user2Address);
         vm.stopBroadcast();
 
-        vm.startBroadcast(vm.envUint("USER1_PRIVATE_KEY"));
-        // uni.delegate(vm.envAddress("USER1_ADDRESS"));
-        uni.transferFrom(vm.envAddress("USER1_ADDRESS"), vm.envAddress("USER2_ADDRESS"), 1_000_000_000_000_000_000);
-        uni.delegate(vm.envAddress("USER2_ADDRESS"));
-        vm.stopBroadcast();
+        // vm.startBroadcast(vm.envUint("USER1_PRIVATE_KEY"));
+        // // uni.delegate(vm.envAddress("USER1_ADDRESS"));
+        // uni.transferFrom(vm.envAddress("USER1_ADDRESS"), vm.envAddress("USER2_ADDRESS"), 1_000_000_000_000_000_000);
+        // uni.delegate(vm.envAddress("USER2_ADDRESS"));
+        // vm.stopBroadcast();
     }
 
-    function createProposal(GovernorBravoDelegate delegateInterface, uint256 pk) public {        
-
+    function createProposal(GovernorBravoDelegate delegateInterface, uint256 pk) public {
         // 8. submit a proposal
         address[] memory addr = new address[](1);
         addr[0] = 0xbc3A7D78d2f4E4c22CA750a348a4ac93f5E4D188;
@@ -110,7 +102,7 @@ contract DeployGovernanceWithBravoScript is Script {
         calldatas[0] = abi.encode(address(0xbc3A7D78d2f4E4c22CA750a348a4ac93f5E4D188), 1);
 
         vm.startBroadcast(pk);
-        uint proposalId = delegateInterface.propose(
+        uint256 proposalId = delegateInterface.propose(
             addr, // test address
             values,
             signatures,
@@ -121,7 +113,7 @@ contract DeployGovernanceWithBravoScript is Script {
         console.log("Proposal id: ", proposalId);
     }
 
-    function castVote(GovernorBravoDelegate delegateInterface, uint proposalId, uint8 support) public {
+    function castVote(GovernorBravoDelegate delegateInterface, uint256 proposalId, uint8 support) public {
         vm.startBroadcast(vm.envUint("USER1_PRIVATE_KEY"));
         delegateInterface.castVote(proposalId, support);
         vm.stopBroadcast();
@@ -149,7 +141,6 @@ contract DeployGovernanceWithBravoScript is Script {
         console.log("admin balance", uni.balanceOf(this.publicKey()));
         console.log("User1 balance: ", uni.balanceOf(vm.envAddress("USER1_ADDRESS")));
         console.log("User2 balance: ", uni.balanceOf(vm.envAddress("USER2_ADDRESS")));
-
     }
 
     function getUNIBalances(Uni uni) public {
@@ -159,25 +150,32 @@ contract DeployGovernanceWithBravoScript is Script {
     }
 
     function run() external {
-
         // first run
-        // this.initialSetup();
+        address user1AddressEOA = vm.envAddress("USER1_ADDRESS"); // used for local fork
+        address user1AddressAA = 0xb979c4469eE958518497F657103b120C95bE2795; // update to test on sepolia
+        address user2Address = vm.envAddress("USER2_ADDRESS");
+
+        this.initialSetup(user1AddressAA, user2Address);
+
+        // update after first run
+        // address delegateAddress = 0x6DFDC91b9B189B7DeB98e19502aee298E77D49dc;
+        // address uniAddress = 0x4ACd80BAF226eF119ceaC073EF85D6BF01c639cF;
 
         // second run
-        Uni uni = Uni(address(0x7A443140508d25d66c367197Da2Da1844E1d8BCC));
-        tokenActions(uni);
-        
-        // getUNIBalances(uni);
-        // third run
-        // GovernorBravoDelegate delegateInterface = GovernorBravoDelegate(address(0x19DF248A8443D057a9209142755e069403964546));
-        priorVotesHelper(uni, this.publicKey());
-        priorVotesHelper(uni, vm.envAddress("USER1_ADDRESS"));
+        // GovernorBravoDelegate delegateInterface = GovernorBravoDelegate(delegateAddress);
+        // this.createProposal(delegateInterface, this.privateKey()); // changing from USER1_PRIVATE_KEY
 
-        //this.createProposal(delegateInterface, vm.envUint("USER1_PRIVATE_KEY"));
-        // this.createProposal(delegateInterface, this.privateKey());
-
+        // third run; need to move the clock forward;
+        // GovernorBravoDelegate delegateInterface = GovernorBravoDelegate(delegateAddress);
+        // // this.createProposal(delegateInterface, this.privateKey());
+        // Uni uni = Uni(uniAddress);
+        // tokenActions(uni);
 
         // fourth run
-        // this.castVote(delegateInterface, 1, 2);
+        // GovernorBravoDelegate delegateInterface = GovernorBravoDelegate(delegateAddress);
+        // this.castVote(delegateInterface, 3, 2);
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

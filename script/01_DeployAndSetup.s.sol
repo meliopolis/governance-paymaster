@@ -11,8 +11,8 @@ import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
 // forge script DeployAndSetupScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --verify -vv --skip test
 // to broadcast, add --broadcast flag
 
-
 contract DeployAndSetupScript is Script {
+
     function run() external {
         address erc20TokenAddress = vm.envAddress("ERC20_TOKEN");
         IEntryPoint entryPoint = IEntryPoint(vm.envAddress("ENTRY_POINT"));
@@ -24,4 +24,7 @@ contract DeployAndSetupScript is Script {
         vm.stopBroadcast();
         console.log("Paymaster deployed at: ", address(paymaster));
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

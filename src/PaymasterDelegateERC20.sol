@@ -121,7 +121,6 @@ contract PaymasterDelegateERC20 is BasePaymaster, Pausable {
      * Verifies that the sender holds ERC20 tokens
      * Note that this doesn't work when the token is accessed via a Proxy contract, due to storage access rules
      */
-
     function _verifyERC20Holdings(address sender) internal view {
         IERC20 token = IERC20(_erc20Address);
         uint256 tokenBalance = token.balanceOf(sender);

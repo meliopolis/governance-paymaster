@@ -21,6 +21,7 @@ error IncorrectCastVoteSignature();
 error SupportMustBeLessThanOrEqualToTwo();
 error SenderOnBlocklist();
 error MaxCostExceedsAllowedAmount(uint256 maxCost);
+error SenderDoesNotHoldAnyERC20Tokens();
 
 /**
  * This paymaster pays for gas when a user casts a vote on a GovernorBravo Contract
@@ -36,7 +37,10 @@ contract PaymasterCastVote is BasePaymaster, Pausable {
     // blocklist - tracks any address whose transaction reverts
     mapping(address => bool) public blocklist;
 
-    constructor(IEntryPoint entryPoint, address erc20Address, address governorBravoAddress) BasePaymaster(entryPoint) Ownable(msg.sender) {
+    constructor(IEntryPoint entryPoint, address erc20Address, address governorBravoAddress)
+        BasePaymaster(entryPoint)
+        Ownable(msg.sender)
+    {
         // solhint-disable avoid-tx-origin
         if (tx.origin != msg.sender) {
             _transferOwnership(tx.origin);
@@ -62,8 +66,22 @@ contract PaymasterCastVote is BasePaymaster, Pausable {
         _maxCostAllowed = maxCost;
     }
 
+    function getERC20Address() public view returns (address) {
+        return _erc20Address;
+    }
+
     function getGovernorBravoAddress() public view returns (address) {
         return _governorBravoAddress;
+    }
+
+    /**
+     * Verifies that the sender holds ERC20 tokens
+     * Note that this doesn't work when the token is accessed via a Proxy contract, due to storage access rules
+     */
+    function _verifyERC20Holdings(address sender) internal view {
+        IERC20 token = IERC20(_erc20Address);
+        uint256 tokenBalance = token.balanceOf(sender);
+        if (tokenBalance == 0) revert SenderDoesNotHoldAnyERC20Tokens();
     }
 
     /**
@@ -126,9 +144,8 @@ contract PaymasterCastVote is BasePaymaster, Pausable {
         // verify that calldata is accuarate.
         _verifyCallDataForCastVoteAction(userOp.callData);
 
-        // verify that sender has some ERC20 token delegated to them
-        // TODO: don't have startBlock info. Either need to include that manually or skip this part
-        // uint96 delegatedTokenAmount = getPriorVotes(userOp.sender, _proposals[proposalId].startBlock);
+        // verify that sender holds ERC20 token
+        _verifyERC20Holdings(userOp.sender);
 
         return (abi.encode(userOp.sender), _packValidationData(false, 0, 0));
     }
