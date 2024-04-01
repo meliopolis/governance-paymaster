@@ -6,8 +6,8 @@ import {UserOperation} from "@account-abstraction/interfaces/UserOperation.sol";
 import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
 import {IPaymaster} from "@account-abstraction/interfaces/IPaymaster.sol";
 import {Ownable} from "@openzeppelin/access/Ownable.sol";
-import {ERC20Test} from "./ERC20.t.sol";
-import {PaymasterDelegateERC20Harness} from "./PaymasterDelegateERC20Harness.t.sol";
+import {ERC20Test} from "./ERC20Test.sol";
+import {PaymasterDelegateERC20Harness} from "./PaymasterDelegateERC20Harness.sol";
 // solhint-disable-next-line no-global-import
 import "../src/PaymasterDelegateERC20.sol";
 
@@ -144,7 +144,8 @@ contract PaymasterDelegateERC20Test is Test {
     /*
      * ERC20 Balance tests
      */
-    function testFail_ERC20Balance() public view {
+    function test_NoERC20Balance() public {
+        vm.expectRevert(SenderDoesNotHoldAnyERC20Tokens.selector);
         paymasterHarness.exposed_verifyERC20Holdings(alice);
     }
 
@@ -309,10 +310,7 @@ contract PaymasterDelegateERC20Test is Test {
         uint48 validAfter = uint48(validationData >> (160 + 48));
         require(validation == address(0), "validation should be 0");
         require(validUntil == 0, "validUntil should be 0");
-        require(
-            validAfter == uint48(paymasterHarness.getMinWaitBetweenDelegations()),
-            "validAfter != minWait"
-        );
+        require(validAfter == uint48(paymasterHarness.getMinWaitBetweenDelegations()), "validAfter != minWait");
     }
 
     function test_validatePaymasterUserOpValidationDataAfterPostOpSucceeded() public {

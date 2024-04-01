@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-// solhint-disable no-console 
+// solhint-disable no-console
 // solhint-disable custom-errors
 
 import {Script} from "forge-std/Script.sol";
@@ -11,7 +11,7 @@ import {BasePaymaster} from "account-abstraction/core/BasePaymaster.sol";
 import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
 
 // To run:
-// forge script AbandonScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --skip test 
+// forge script AbandonScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --skip test
 // to broadcast, add --broadcast flag
 
 // Note: this may need to be run multiple times to fully abandon a paymaster.
@@ -21,16 +21,16 @@ contract AbandonScript is Script {
     function run() external {
         address publicKey = vm.envAddress("PUBLIC_KEY");
         address paymasterAddress = vm.envAddress("PAYMASTER");
-        
+
         // make sure Paymaster address exists
         require(paymasterAddress != address(0), "PAYMASTER not set");
         BasePaymaster pm = BasePaymaster(payable(paymasterAddress));
         IEntryPoint entryPoint = IEntryPoint(vm.envAddress("ENTRY_POINT"));
-        
+
         // get deposit and stake info
         IStakeManager.DepositInfo memory depositInfo = entryPoint.getDepositInfo(paymasterAddress);
         vm.startBroadcast();
-        
+
         // case 1: no stake
         if (depositInfo.stake == 0) {
             // check to make sure there is something to withdraw (in case already abandoned)
@@ -63,4 +63,6 @@ contract AbandonScript is Script {
         }
         vm.stopBroadcast();
     }
+    // add this to be excluded from coverage report
+    function test() public {}
 }
