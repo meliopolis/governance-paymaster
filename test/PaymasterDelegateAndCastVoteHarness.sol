@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+// solhint-disable-next-line no-global-import
 import "../src/PaymasterDelegateAndCastVote.sol";
 /**
  * Test Harness for PaymasterCastVote to test `internal` functions
  */
-
+// solhint-disable func-name-mixedcase
 contract PaymasterDelegateAndCastVoteHarness is PaymasterDelegateAndCastVote {
-    constructor(IEntryPoint entryPoint, address ERC20Address, address governorBravoAddress)
-        PaymasterDelegateAndCastVote(entryPoint, ERC20Address, governorBravoAddress)
+    constructor(IEntryPoint entryPoint, address erc20Address, address governorBravoAddress)
+        PaymasterDelegateAndCastVote(entryPoint, erc20Address, governorBravoAddress)
     {}
 
     function exposed_verifyERC20Holdings(address user) public view {
