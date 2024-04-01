@@ -67,8 +67,8 @@ contract GenerateTokenActivityPreVote is Script {
     }
 
     function run() external {
-        address user1Address = vm.envAddress("USER1_ADDRESS"); // EOA for local fork
-            // address user1Address = vm.envAddress("AA_ADDRESS"); // AA Wallet
+        // address user1Address = vm.envAddress("USER1_ADDRESS"); // EOA for local fork
+        address user1Address = vm.envAddress("AA_ADDRESS"); // AA Wallet
         address user2Address = vm.envAddress("USER2_ADDRESS");
 
         Uni uni = Uni(vm.envAddress("ERC20_TOKEN"));

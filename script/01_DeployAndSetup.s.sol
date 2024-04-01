@@ -6,6 +6,7 @@ import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {PaymasterDelegateERC20} from "../src/PaymasterDelegateERC20.sol";
 import {PaymasterCastVote} from "../src/PaymasterCastVote.sol";
+import {PaymasterDelegateAndCastVote} from "../src/PaymasterDelegateAndCastVote.sol";
 import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
 
 // To run:
@@ -21,7 +22,8 @@ contract DeployAndSetupScript is Script {
 
         // Note: uncomment the appropriate line to deploy the desired paymaster
         // PaymasterDelegateERC20 paymaster = new PaymasterDelegateERC20(entryPoint, erc20TokenAddress);
-        PaymasterCastVote paymaster = new PaymasterCastVote(entryPoint, erc20TokenAddress, governorBravoAddress);
+        // PaymasterCastVote paymaster = new PaymasterCastVote(entryPoint, erc20TokenAddress, governorBravoAddress);
+        PaymasterDelegateAndCastVote paymaster = new PaymasterDelegateAndCastVote(entryPoint, erc20TokenAddress, governorBravoAddress);
 
         paymaster.deposit{value: 500_000_000_000_000_000}();
         // Note that 1 second is the minimum stake delay is too small for any mainnet deployment
