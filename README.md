@@ -4,15 +4,18 @@ _This work was funded by the Ethereum Foundation._
 
 This repository contains Paymasters that operate fully on-chain, as in without requiring a separate centralized backend service with logic to determine whether a transaction should be covered by a Paymaster. 
 
-One example of such a Paymaster that requires a backend service: [VerifyingPaymaster](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/VerifyingPaymaster.sol). This Paymaster's onchain logic only allows it to verify if the `UserOp.paymasterAndData` contains a valid signature, which is generated off-chain via a backend service.
+Background: One populate example of a Paymaster that requires a backend service: [VerifyingPaymaster](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/VerifyingPaymaster.sol). This Paymaster's onchain logic only allows it to verify if the `UserOp.paymasterAndData` contains a valid signature, which is generated off-chain via a backend service.
 
-The Paymasters in this repository are built to only pay for specific actions on-chain and they determine whether to pay for those actions with logic *completely on-chain*. Once deployed, they can operate without requiring any intervention (except perhaps to refill their accounts with `EntryPoint`).
+Contrast to a `VerifyingPaymaster`, the Paymasters in this repository are built to only pay for specific actions on-chain and they determine whether to pay for those actions with logic *completely on-chain*. Once deployed, they can operate without requiring any intervention (except perhaps to refill their accounts with `EntryPoint`).
 
-1. [Paymaster for `delegate(address)` call](#paymaster-for-delegateaddress-call)
-2. [Paymaster for `castVote(uint256,uint8)`](#paymaster-for-castvoteuint256-proposalid-uint8-support-call)
-3. [Paymaster for `delegate` and `castVote` calls](#paymaster-for-delegate-and-castvote-calls)
+We have built several different versions of these paymasters to demonstrate their versatility:
 
-We have created a [few scripts](#usage) to help deploy, manage and abandon these paymasters. 
+1. [General Overview](#general-overview)
+2. [Paymaster for `delegate(address)` call](#paymaster-for-delegateaddress-call)
+3. [Paymaster for `castVote(uint256,uint8)`](#paymaster-for-castvoteuint256-proposalid-uint8-support-call)
+4. [Paymaster for `delegate` and `castVote` calls](#paymaster-for-delegate-and-castvote-calls)
+
+Check out the [usage](#usage) section to help deploy, and manage these paymasters. 
 
 ## General Overview
 
@@ -24,13 +27,13 @@ Our logic requires specific calldata and our validation function checks for both
 
 In each of the Paymasters below, we specify the exact calldata required for Paymaster to approve.
 
-### Other Considerations: attack vectors
+### Other Considerations: attack vectors, gas costs, etc
 
-* What if the user calls the Paymaster again **immediately** after a successful action? In some cases, this is already limited by on-chain logic like a `Governor` contract won't allow same user to vote multiple times. In other cases, we record the user action and impose a minimum waiting time. 
+* What if the user calls the Paymaster again **immediately** or repeatedly after a successful action? In some cases, this is already limited by on-chain logic like a `Governor` contract won't allow same user to vote multiple times. In other cases, we record the user action and impose a minimum waiting time. 
 
 * What if someone submits a transaction during high gas fees? There's a built-in `maxCost` to limit damage, also editable by the Paymaster Owner.
 
-* What if there is a dishonest bundler who submits fake transactions? Then, (in theory), that bundler will get penalized by EntryPoint when the transaction fails during EntryPoint's simulation. TODO: this part is a little unclear to us. Need to talk to more bundlers to understand their implementation.
+* What if there is a dishonest bundler who submits fake transactions? Then, (in theory), that bundler will get penalized by EntryPoint when the transaction fails during EntryPoint's simulation.
 
 ### Storage access rules
 
@@ -85,17 +88,19 @@ Sample Paymaster deployed at: [0x5faEe2339C65944935DeFd85492948ea6079c745](https
 
 We compare calling the `delegate(address)` function from various different wallets.
 
-| Wallet | Sample Txn | Gas Used |
-| ------ | ---------- | -------- |
-| EOA | [Txn](https://sepolia.etherscan.io/tx/0x891fd130f3dfe25e868077bd1b8f7b485c332953bbab81652b62797c7eb070aa) | 95,737 |
-| AA - already deployed (no Paymaster) | [Txn](https://sepolia.etherscan.io/tx/0xb8eecd6f492c453e4a6ec3da20e90a3a3c8464c0a06a9e47d6bf298ea40409c4) | 167,689 |
-| AA - not deployed (no Paymaster) | [Txn](https://sepolia.etherscan.io/tx/0xe0b8e862a01ee660a021bfc9f7b1bbd99cf8700c3a3325d4292dc2135eafa62f) | 452,501 |
-| AA - already deployed (with PaymasterDelegateERC20) | [Txn](https://sepolia.etherscan.io/tx/0xb5fa82c780ac5236782f88ec9cdb80731cdf1e8c67414a10d45ce77ad77d2fc5) | 187,815 |
-| AA - not deployed (with PaymasterDelegateERC20) | [Txn](https://sepolia.etherscan.io/tx/0x853dbded6e5c77617044fa5b79bf585272b869f9a59ec6373fed1e35f4fc2f1e) | 472,650 |
+| Wallet | Paymaster | Sample Txn | Gas Used |
+| ------ | --------- | ---------- | -------- |
+| EOA | - | [Txn](https://sepolia.etherscan.io/tx/0x891fd130f3dfe25e868077bd1b8f7b485c332953bbab81652b62797c7eb070aa) | 95,737 |
+| AA - already deployed | None | [Txn](https://sepolia.etherscan.io/tx/0xb8eecd6f492c453e4a6ec3da20e90a3a3c8464c0a06a9e47d6bf298ea40409c4) | 167,689 |
+| AA - not deployed | None | [Txn](https://sepolia.etherscan.io/tx/0xe0b8e862a01ee660a021bfc9f7b1bbd99cf8700c3a3325d4292dc2135eafa62f) | 452,501 |
+| AA - already deployed | `PaymasterDelegateERC20` | [Txn](https://sepolia.etherscan.io/tx/0xb5fa82c780ac5236782f88ec9cdb80731cdf1e8c67414a10d45ce77ad77d2fc5) | 187,815 |
+| AA - not deployed | `PaymasterDelegateERC20` | [Txn](https://sepolia.etherscan.io/tx/0x853dbded6e5c77617044fa5b79bf585272b869f9a59ec6373fed1e35f4fc2f1e) | 472,650 |
 
 As you can see, gas usage of AA wallet vs EOA is quite high but the Paymaster itself is a pretty minimal increase in gas usage.
 
 ## Paymaster for `castVote(uint256 proposalId, uint8 support)` call
+
+Code: [PaymasterCastVote.sol](https://github.com/meliopolis/governance-paymaster/blob/main/src/PaymasterCastVote.sol)
 
 ### Calldata
 
@@ -122,11 +127,22 @@ Sample calldata required by this Paymaster:
 
 ### Other considerations
 
-TODO 
+* What if someone spams the Paymaster with valid calldata length and `GovernorBravo` address but repetitive or nonsensical data? We are still conducting an ERC20 Balance check as well as the Govenor itself will only allow each holder to vote once.
 
-### Storage access rules
+### Sample Transactions & Gas Usage
 
-TODO
+Sample Paymaster deployed at: [0x6d1915457789DdA5A0f32D006edC7Bf0cdB3f746](https://sepolia.etherscan.io/address/0x6d1915457789DdA5A0f32D006edC7Bf0cdB3f746)
+
+We compare calling the `castVote(uint256,uint8)` function from various different wallets.
+
+| Wallet | Paymaster | Sample Txn | Gas Used |
+| ------ | --------- | ---------- | -------- |
+| EOA | - | [Txn](https://sepolia.etherscan.io/tx/0x1f4c1d59d921fc9c8de19ca34d2b8ca7b6a743d6f9eabee067f26aec2a72baf8) | 76,042 |
+| AA - already deployed | None | [Txn](https://sepolia.etherscan.io/tx/0xcfdf92f39f85d95b23a54d5071a9d34652fa212af8dd10eb6019458f9562c0fa) | 162,656[^1] |
+| AA - already deployed | `PaymasterCastVote` | [Txn](https://sepolia.etherscan.io/tx/0x3ea7fc022afc6e28facbc4d4f3efda34bb9de041e1cf1e2daf74720e2b31ab7f) | 160,655 |
+| AA - not deployed | `PaymasterCastVote` | [Txn](https://sepolia.etherscan.io/tx/0xf9c687f43bf6c30fc54e5c1c3c101c9ecfa7ecf82500c36309f940036681435b) | 472,650 |
+
+[^1]: Counterintuitive that a transaction without Paymaster is more gas. We believe this is due to an extra transfer of ETH.
 
 ## Paymaster for `delegate(...)` and `castVote(...)` calls
 
