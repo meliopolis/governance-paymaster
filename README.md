@@ -19,6 +19,7 @@ Table of Contents
     3. [Paymaster for `delegate` and `castVote` calls](#paymaster-for-delegate-and-castvote-calls)
 * [How to use](#usage) 
 
+
 ## General Overview
 
 ### Methodology
@@ -176,6 +177,7 @@ Deployed at: [0x2cEa8A3135A1eF6E5Dc42E094f043a9Bc4D27bC5](https://sepolia.ethers
 
 We expect the gas usage of this paymaster to be similar to the above two paymasters.
 
+
 ## Usage
 
 ### Build
@@ -185,7 +187,6 @@ $ forge build
 ```
 
 ### Test and Coverage
-
 Check out `tests/`. We have 100% test coverage of all the Paymasters in this repo. 
 
 ```shell
