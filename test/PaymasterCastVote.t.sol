@@ -18,7 +18,7 @@ contract PaymasterCastVoteTest is Test {
     PaymasterCastVote public paymaster;
     PaymasterCastVoteHarness public paymasterHarness;
     ERC20Test public erc20;
-    address governorBravoAddress = 0x408ED6354d4973f66138C91495F2f2FCbd8724C3;
+    address public governorBravoAddress = 0x408ED6354d4973f66138C91495F2f2FCbd8724C3;
     address public owner = vm.envAddress("PUBLIC_KEY");
     address public entryPointAddress = vm.envAddress("ENTRY_POINT");
     address public alice = address(0x1);
@@ -286,7 +286,7 @@ contract PaymasterCastVoteTest is Test {
         vm.prank(owner);
         erc20.mint(alice, 100);
         UserOperation memory userOp = _userOpsHelper(correctCallData, alice);
-        (bytes memory context, ) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
+        (bytes memory context,) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
         (address caller) = abi.decode(context, (address));
         assert(caller == alice);
     }

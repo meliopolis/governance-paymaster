@@ -13,7 +13,6 @@ import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
 // to broadcast, add --broadcast flag
 
 contract DeployAndSetupScript is Script {
-
     function run() external {
         address erc20TokenAddress = vm.envAddress("ERC20_TOKEN");
         address governorBravoAddress = vm.envAddress("GOVERNOR_BRAVO");
@@ -23,7 +22,7 @@ contract DeployAndSetupScript is Script {
         // Note: uncomment the appropriate line to deploy the desired paymaster
         // PaymasterDelegateERC20 paymaster = new PaymasterDelegateERC20(entryPoint, erc20TokenAddress);
         PaymasterCastVote paymaster = new PaymasterCastVote(entryPoint, erc20TokenAddress, governorBravoAddress);
-        
+
         paymaster.deposit{value: 500_000_000_000_000_000}();
         // Note that 1 second is the minimum stake delay is too small for any mainnet deployment
         paymaster.addStake{value: 100_000_000_000_000_000}(1);

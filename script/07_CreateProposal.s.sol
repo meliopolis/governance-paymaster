@@ -45,7 +45,6 @@ contract CreateProposalScript is Script {
     }
 
     function run() external {
-        
         GovernorBravoDelegate delegateInterface = GovernorBravoDelegate(vm.envAddress("GOVERNOR_BRAVO"));
         this.createProposal(delegateInterface, this.privateKey()); // changing from USER1_PRIVATE_KEY
     }

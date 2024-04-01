@@ -52,9 +52,10 @@ contract PaymasterDelegateAndCastVote is BasePaymaster, Pausable {
     // Track the last known delegation happened from this account
     mapping(address => uint256) public lastDelegationTimestamp;
 
-    constructor(IEntryPoint _entryPoint, address erc20Address, address governorBravoAddress) 
-        BasePaymaster(_entryPoint) 
-        Ownable(msg.sender) {
+    constructor(IEntryPoint _entryPoint, address erc20Address, address governorBravoAddress)
+        BasePaymaster(_entryPoint)
+        Ownable(msg.sender)
+    {
         // solhint-disable avoid-tx-origin
         if (tx.origin != msg.sender) {
             _transferOwnership(tx.origin);
@@ -111,7 +112,7 @@ contract PaymasterDelegateAndCastVote is BasePaymaster, Pausable {
      *  00000000000000000000000000000000000000000000000000000000 filler
      *
      * OR
-     * 
+     *
      * Ex: GovernorBravo castVote. Total 228 bytes
      * 0x
      * b61d27f6 "execute" hash
@@ -125,7 +126,6 @@ contract PaymasterDelegateAndCastVote is BasePaymaster, Pausable {
      * 00000000000000000000000000000000000000000000000000000000 filler
      */
     function _verifyCallDataForDelegateAction(bytes calldata callData) internal view {
-    
         // extract initial `execute` signature. Need to extract this separately because of the way abi.decode works
         bytes4 executeSig = bytes4(callData[:4]);
         if (executeSig != bytes4(keccak256("execute(address,uint256,bytes)"))) revert IncorrectExecuteSignature();
@@ -141,7 +141,9 @@ contract PaymasterDelegateAndCastVote is BasePaymaster, Pausable {
         if (toAddress != _erc20Address) revert InvalidERC20Address();
         if (value != 0) revert ValueMustBeZero();
         if (data1 != hex"0000000000000000000000000000000000000000000000000000000000000060") revert Data1MustBe0x60();
-        if (data2 != hex"0000000000000000000000000000000000000000000000000000000000000024") revert Data2ForDelegateMustBe0x24();
+        if (data2 != hex"0000000000000000000000000000000000000000000000000000000000000024") {
+            revert Data2ForDelegateMustBe0x24();
+        }
         if (bytes4(delegateHash) != bytes4(keccak256("delegate(address)"))) revert IncorrectDelegateSignature();
         if (delegatee == address(0)) revert DelegateeCannotBe0x0();
     }
@@ -164,7 +166,9 @@ contract PaymasterDelegateAndCastVote is BasePaymaster, Pausable {
         if (toAddress != _governorBravoAddress) revert InvalidGovernorBravoAddress();
         if (value != 0) revert ValueMustBeZero();
         if (data1 != hex"0000000000000000000000000000000000000000000000000000000000000060") revert Data1MustBe0x60();
-        if (data2 != hex"0000000000000000000000000000000000000000000000000000000000000044") revert Data2ForCastVoteMustBe0x44();
+        if (data2 != hex"0000000000000000000000000000000000000000000000000000000000000044") {
+            revert Data2ForCastVoteMustBe0x44();
+        }
         if (bytes4(castVoteHash) != bytes4(keccak256("castVote(uint256,uint8)"))) revert IncorrectCastVoteSignature();
         if (support > 2) revert SupportMustBeLessThanOrEqualToTwo();
     }
@@ -207,7 +211,10 @@ contract PaymasterDelegateAndCastVote is BasePaymaster, Pausable {
         // verify calldata
         if (userOp.callData.length == 228) {
             _verifyCallDataForCastVoteAction(userOp.callData);
-            return (abi.encode(userOp.sender, Action.CAST_VOTE), _packValidationData(false, uint48(validUntil), uint48(validAfter)));
+            return (
+                abi.encode(userOp.sender, Action.CAST_VOTE),
+                _packValidationData(false, uint48(validUntil), uint48(validAfter))
+            );
         } else if (userOp.callData.length == 196) {
             _verifyCallDataForDelegateAction(userOp.callData);
 
@@ -226,8 +233,10 @@ contract PaymasterDelegateAndCastVote is BasePaymaster, Pausable {
             if (lastDelegationTimestamp[userOp.sender] > 0) {
                 validUntil = validAfter + 30 minutes;
             }
-            return (abi.encode(userOp.sender, Action.DELEGATE), _packValidationData(false, uint48(validUntil), uint48(validAfter)));
-
+            return (
+                abi.encode(userOp.sender, Action.DELEGATE),
+                _packValidationData(false, uint48(validUntil), uint48(validAfter))
+            );
         } else {
             revert IncorrectCallDataLengthOf196OR228Bytes();
         }
@@ -247,7 +256,7 @@ contract PaymasterDelegateAndCastVote is BasePaymaster, Pausable {
         // 2. opReverted: record caller address in a blocklist
         // This is to prevent the same address from calling the paymaster again
         else if (mode == PostOpMode.opReverted) {
-            (address caller, ) = abi.decode(context, (address, Action));
+            (address caller,) = abi.decode(context, (address, Action));
             blocklist[caller] = true;
         }
         // 3. postOpReverted: not applicable. Based on current implementation, this should never happen

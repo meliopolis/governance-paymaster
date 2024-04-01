@@ -19,7 +19,7 @@ contract PaymasterDelegateAndCastVoteTest is Test {
     PaymasterDelegateAndCastVote public paymaster;
     PaymasterDelegateAndCastVoteHarness public paymasterHarness;
     ERC20Test public erc20;
-    address governorBravoAddress = 0x408ED6354d4973f66138C91495F2f2FCbd8724C3;
+    address public governorBravoAddress = 0x408ED6354d4973f66138C91495F2f2FCbd8724C3;
     address public owner = vm.envAddress("PUBLIC_KEY");
     address public entryPointAddress = vm.envAddress("ENTRY_POINT");
     address public alice = address(0x1);
@@ -41,7 +41,7 @@ contract PaymasterDelegateAndCastVoteTest is Test {
      *  00000000000000000000000000000000000000000000000000000000 filler
      *
      * OR
-     * 
+     *
      * Ex: GovernorBravo castVote. Total 228 bytes
      * 0x
      * b61d27f6 "execute" hash
@@ -286,11 +286,10 @@ contract PaymasterDelegateAndCastVoteTest is Test {
         paymasterHarness.exposed_verifyCallDataForDelegateAction(callDataWithIncorrectDelegatee);
     }
 
-
     /*
      * Verify Call Data for CastVote Action Tests
      */
-    
+
     function test_callDataForCastVoteIncorrectExecuteSig() public {
         bytes memory callDataWithIncorrectExecuteSig = hex"03033003" // incorrect execute signature
             hex"000000000000000000000000408ed6354d4973f66138c91495f2f2fcbd8724c3" // governorBravoAddress
@@ -394,7 +393,6 @@ contract PaymasterDelegateAndCastVoteTest is Test {
         paymasterHarness.exposed_verifyCallDataForCastVoteAction(callDataWithIncorrectSupport);
     }
 
-
     /*
      * Validate UserOp
      */
@@ -417,8 +415,9 @@ contract PaymasterDelegateAndCastVoteTest is Test {
     // also tests postOpReverted
     function test_validatePaymasterUserOpUserOnBlocklist() public {
         // add Alice to blocklist
-        paymasterHarness.exposed_postOp(IPaymaster.PostOpMode.opReverted, 
-            abi.encode(alice, PaymasterDelegateAndCastVote.Action.DELEGATE));
+        paymasterHarness.exposed_postOp(
+            IPaymaster.PostOpMode.opReverted, abi.encode(alice, PaymasterDelegateAndCastVote.Action.DELEGATE)
+        );
         UserOperation memory userOp = _userOpsHelper(correctCallDataForDelegate, alice);
         vm.expectRevert(SenderOnBlocklist.selector);
         paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
@@ -443,7 +442,8 @@ contract PaymasterDelegateAndCastVoteTest is Test {
         erc20.mint(alice, 100);
         UserOperation memory userOp = _userOpsHelper(correctCallDataForDelegate, alice);
         (bytes memory context, uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
-        (address caller, PaymasterDelegateAndCastVote.Action action) = abi.decode(context, (address, PaymasterDelegateAndCastVote.Action));
+        (address caller, PaymasterDelegateAndCastVote.Action action) =
+            abi.decode(context, (address, PaymasterDelegateAndCastVote.Action));
         assert(caller == alice);
         assert(action == PaymasterDelegateAndCastVote.Action.DELEGATE);
         address validation = address(uint160(validationData));
@@ -462,7 +462,7 @@ contract PaymasterDelegateAndCastVoteTest is Test {
         erc20.mint(alice, 100);
         UserOperation memory userOp = _userOpsHelper(correctCallDataForCastVote, alice);
         (bytes memory context, uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
-        (address caller, PaymasterDelegateAndCastVote.Action action) = 
+        (address caller, PaymasterDelegateAndCastVote.Action action) =
             abi.decode(context, (address, PaymasterDelegateAndCastVote.Action));
         assert(caller == alice);
         assert(action == PaymasterDelegateAndCastVote.Action.CAST_VOTE);
@@ -479,7 +479,9 @@ contract PaymasterDelegateAndCastVoteTest is Test {
         erc20.mint(alice, 100);
 
         // pretend first call went through
-        paymasterHarness.exposed_postOp(IPaymaster.PostOpMode.opSucceeded, abi.encode(alice, PaymasterDelegateAndCastVote.Action.DELEGATE));
+        paymasterHarness.exposed_postOp(
+            IPaymaster.PostOpMode.opSucceeded, abi.encode(alice, PaymasterDelegateAndCastVote.Action.DELEGATE)
+        );
 
         // call second time
         UserOperation memory userOp = _userOpsHelper(correctCallDataForDelegate, alice);
@@ -506,7 +508,9 @@ contract PaymasterDelegateAndCastVoteTest is Test {
         erc20.mint(alice, 100);
 
         // pretend first call went through
-        paymasterHarness.exposed_postOp(IPaymaster.PostOpMode.opSucceeded, abi.encode(alice, PaymasterDelegateAndCastVote.Action.CAST_VOTE));
+        paymasterHarness.exposed_postOp(
+            IPaymaster.PostOpMode.opSucceeded, abi.encode(alice, PaymasterDelegateAndCastVote.Action.CAST_VOTE)
+        );
 
         // call second time
         UserOperation memory userOp = _userOpsHelper(correctCallDataForCastVote, alice);
