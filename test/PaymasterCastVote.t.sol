@@ -286,7 +286,7 @@ contract PaymasterCastVoteTest is Test {
         vm.prank(owner);
         erc20.mint(alice, 100);
         UserOperation memory userOp = _userOpsHelper(correctCallData, alice);
-        (bytes memory context, uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
+        (bytes memory context, ) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
         (address caller) = abi.decode(context, (address));
         assert(caller == alice);
     }
