@@ -18,12 +18,12 @@ contract CastVoteScript is Script {
     address public publicKey = vm.envAddress("PUBLIC_KEY");
     uint256 public privateKey = vm.envUint("PRIVATE_KEY");
 
-
     function castVote(GovernorBravoDelegate delegateInterface, uint256 proposalId, uint8 support) public {
         vm.startBroadcast(vm.envUint("USER1_PRIVATE_KEY"));
         delegateInterface.castVote(proposalId, support);
         vm.stopBroadcast();
     }
+
     function run() external {
         GovernorBravoDelegate delegateInterface = GovernorBravoDelegate(vm.envAddress("GOVERNOR_BRAVO"));
         this.castVote(delegateInterface, 3, 2);

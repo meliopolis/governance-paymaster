@@ -54,7 +54,6 @@ contract DeployGovernorBravoWithTokenScript is Script {
         vm.stopBroadcast();
     }
 
-
     function run() external {
         this.initialSetup();
     }

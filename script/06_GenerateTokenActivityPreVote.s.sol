@@ -60,16 +60,15 @@ contract GenerateTokenActivityPreVote is Script {
         console.log("User2 balance: ", uni.balanceOf(vm.envAddress("USER2_ADDRESS")));
     }
 
-    function getUNIBalances(Uni uni) view public {
+    function getUNIBalances(Uni uni) public view {
         console.log("admin balance", uni.balanceOf(this.publicKey()));
         console.log("User1 balance: ", uni.balanceOf(vm.envAddress("USER1_ADDRESS")));
         console.log("User2 balance: ", uni.balanceOf(vm.envAddress("USER2_ADDRESS")));
     }
 
     function run() external {
-
         address user1Address = vm.envAddress("USER1_ADDRESS"); // EOA for local fork
-         // address user1Address = vm.envAddress("AA_ADDRESS"); // AA Wallet
+            // address user1Address = vm.envAddress("AA_ADDRESS"); // AA Wallet
         address user2Address = vm.envAddress("USER2_ADDRESS");
 
         Uni uni = Uni(vm.envAddress("ERC20_TOKEN"));
