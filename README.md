@@ -50,6 +50,8 @@ Update: This might be changing in the latest version per Dror and Tom from EF. W
 
 We initially built these paymasters for [`GovernorBravo`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3) and later tested them successfully for OpenZeppelin's [`Governor`](https://docs.openzeppelin.com/contracts/5.x/governance#governor) contract.
 
+One caveat is that we only support `castVote(uint256,uint8)` function calls for the OZ `Governor`. It also allows casting votes through additional calls like `castVoteWithReason` and `castVoteWithReasonAndParams`. While the paymaster can be extended to support those calls, we believe those can be used to drain the paymasters faster. So, implementing them requires additional checks like limiting length of `reason` or `params`. 
+
 <details>
 <summary> Testing with `GovernorBravo`</summary>
 
@@ -211,8 +213,8 @@ Deployed at: [0x2cEa8A3135A1eF6E5Dc42E094f043a9Bc4D27bC5](https://sepolia.ethers
 | ------ | --------- | -------- | ---------- | -------- |
 | AA - already deployed | `PaymasterDelegateAndCastVote` | [`GovernorBravo`](https://sepolia.etherscan.io/address/0xfd145be4af08fc07bce4feb6ebbaefae8b69cbf5) | [Txn](https://sepolia.etherscan.io/tx/0x9d037f2a60ca643db97b44bb18976b539ec7f46db43e77d41201db306e13f48e) | 161,482 |
 | AA - already deployed | `PaymasterDelegateAndCastVote` | [`OZGovernor`](https://sepolia.etherscan.io/address/0x71b27a1e1175B1ad0165b16cd7A608B670988CF0) | [Txn](https://sepolia.etherscan.io/tx/0xd5b25c13eafb8e9c984b7f4a48c5aa683632c41c66f060031aedbb907a709e2e) | 149,262 |
-We expect the gas usage of this paymaster to be similar to the above two paymasters.
 
+We expect the gas usage of this paymaster to be similar to the above two paymasters.
 
 ## Usage
 
