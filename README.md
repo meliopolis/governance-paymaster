@@ -2,21 +2,21 @@
 
 _This work was funded by the Ethereum Foundation._
 
-This repository contains Paymasters that operate **fully on-chain**, as in without requiring a separate centralized backend service with logic to determine whether a transaction should be covered by a Paymaster. 
+This repository contains Paymasters that operate **fully on-chain**, as in without requiring a separate centralized backend service that determines whether a transaction should be covered by a Paymaster. 
 
-Background: One popular example of a Paymaster that pairs with a backend service is a  [VerifyingPaymaster](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/VerifyingPaymaster.sol). This Paymaster's onchain logic only allows it to verify if the `UserOp.paymasterAndData` contains a valid signature, which is generated off-chain via a backend service.
+### Why is this interesting?
 
-The Paymasters in this repository are built to only pay for specific actions on-chain and they determine whether to pay for those actions with logic *completely on-chain*. Once deployed, they can operate without requiring any intervention (except to refill their accounts with `EntryPoint`).
+Most paymasters today (like [VerifyingPaymaster](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/VerifyingPaymaster.sol)) require a backend service. They typically only verify whether `UserOp.paymasterAndData` contains a valid signature and relies on an external service to parse and validate transaction. While this is functional, it introduces a centralized service in the middle.
 
-Below we discuss our general methodology and specific paymasters to show the versatility of our technique:
+In this repository, we demonstrate several paymasters that don't need a centralized service. These paymasters work for only a specific action on-chain and they determine whether to pay for those actions with logic *completely on-chain*. Once deployed, they can operate without requiring any intervention (except to refill their accounts with `EntryPoint`).
 
-Table of Contents
+### Table of Contents
 
 * [General Overview](#general-overview)
 * Paymasters
-    1. [Paymaster for `delegate(address)` call](#paymaster-for-delegateaddress-call)
-    2. [Paymaster for `castVote(uint256,uint8)`](#paymaster-for-castvoteuint256uint8-call)
-    3. [Paymaster for `delegate` and `castVote` calls](#paymaster-for-delegate-and-castvote-calls)
+    1. [Paymaster for `delegate(address)` call](#1-paymaster-for-delegateaddress-call)
+    2. [Paymaster for `castVote(uint256,uint8)`](#2-paymaster-for-castvoteuint256uint8-call)
+    3. [Paymaster for `delegate` and `castVote` calls](#3-paymaster-for-delegate-and-castvote-calls)
 * [How to use](#usage) 
 
 
@@ -26,15 +26,15 @@ Table of Contents
 
 Main challenge for a fully on-chain paymaster is to cover **only** the transactions specified and avoid getting drained through various different abuse vectors. 
 
-Our logic requires specific calldata and our validation function checks for both the length and subsections of the calldata to ensure the call will only go to the intended ERC20token contract and only call a specific function (like `delegate(address)`) on that contract. 
+Our validation function checks for both the length and subsections of the calldata to ensure the call will only go to the intended contract and only call a specific function (like `delegate(address)`) on that contract. 
 
-In each of the Paymasters below, we specify the exact calldata required for Paymaster to approve.
+In each of the paymasters below, we specify the exact calldata required for the paymaster to approve.
 
 ### Other Considerations: attack vectors, gas costs, etc
 
-* What if the user calls the Paymaster again **immediately** or repeatedly after a successful action? In some cases, this is already limited by on-chain logic like a `Governor` contract won't allow same user to vote multiple times. In other cases, we record the user action and impose a minimum waiting time. 
+* What if the user calls a paymaster again **immediately** or repeatedly after a successful action? In some cases, this is already limited by on-chain logic like a `GovernorBravo` contract won't allow same user to vote multiple times. In other cases, we record the user action and impose a minimum waiting time. 
 
-* What if someone submits a transaction during high gas fees? There's a built-in `maxCost` to limit damage, also editable by the Paymaster Owner.
+* What if someone submits a transaction during high gas fees? There's a built-in `maxCost` to limit gas spend, also editable by the paymaster `owner`.
 
 * What if there is a dishonest bundler who submits fake transactions? Then, (in theory), that bundler will get penalized by EntryPoint when the transaction fails during EntryPoint's simulation.
 
@@ -44,6 +44,8 @@ One of the reasons on-chain Paymasters are challenging to build is due to strict
 
 These paymaster respects all the storage access rules. They only access ERC20 Token balances, which is allowed by the [rule #3 in the specifications](https://eips.ethereum.org/EIPS/eip-4337#storage-associated-with-an-address). Additionally, the Paymaster accesses its own storage and that requires it to stake with EntryPoint (which our deploy script handles).
 
+Update: This might be changing in the latest version per Dror and Tom from EF. Waiting to confirm.
+
 ### Other areas to explore
 
 * Add a flag to check for `initCode` in a `userOp`. Could only pay for gas if wallet already deployed, as a way to limiting gas costs.
@@ -51,9 +53,9 @@ These paymaster respects all the storage access rules. They only access ERC20 To
 
 ## 1. Paymaster for `delegate(address)` call
 
-Code: [PaymasterDelegateERC20.sol](https://github.com/meliopolis/governance-paymaster/blob/main/src/PaymasterDelegateERC20.sol)
-
 This paymaster covers the gas cost of [`delegate(address)`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/governance/utils/Votes.sol#L134) function used by ERC20 tokens. This function usually needs to be called before an owner can vote in their respective DAO. For example, Uniswap DAO is managed by UNI token holders. Those token holders can either delegate to themselves or delegate to another wallet address to vote on their behalf. That [`delegate`](https://etherscan.io/token/0x1f9840a85d5af5bf1d1762f925bdaddc4201f984#writeContract#F2) function call could be paid for by this Paymaster.
+
+Code: [PaymasterDelegateERC20.sol](https://github.com/meliopolis/governance-paymaster/blob/main/src/PaymasterDelegateERC20.sol)
 
 ### Calldata
 
@@ -107,9 +109,9 @@ As you can see, gas usage of AA wallet vs EOA is quite high but the Paymaster it
 
 ## 2. Paymaster for `castVote(uint256,uint8)` call
 
-Code: [PaymasterCastVote.sol](https://github.com/meliopolis/governance-paymaster/blob/main/src/PaymasterCastVote.sol)
-
 This Paymaster only pays for the `castVote` call. This call is typically used by on-chain governance systems to record a vote. 
+
+Code: [PaymasterCastVote.sol](https://github.com/meliopolis/governance-paymaster/blob/main/src/PaymasterCastVote.sol)
 
 ### Calldata
 
@@ -130,13 +132,13 @@ Sample calldata required by this Paymaster:
      */
 ```
 
-* At initialization, Paymaster is deployed for a specific ERC20Token and `GovernorBravo` address which is then required in every calldata (ERC20 Address above) for validation to pass. 
+* At initialization, Paymaster is deployed for a specific `GovernorBravo` address and an ERC20 token associated with that governor, which is then required in every calldata for validation to pass. 
 
 * We check the `calldata` length and ensure that it calls `castVote(uint256, uint8)` function and only that function. 
 
 ### Other considerations
 
-* What if someone spams the Paymaster with valid calldata length and `GovernorBravo` address but repetitive or nonsensical data? We are still conducting an ERC20 Balance check as well as the Govenor itself will only allow each holder to vote once.
+* What if someone spams the Paymaster with valid calldata length and `GovernorBravo` address but repetitive or nonsensical data? We are still conducting an ERC20 Balance check as well as the Governor itself will only allow each holder to vote once.
 
 ### Example Transactions & Gas Usage
 
@@ -156,6 +158,8 @@ We compare calling the `castVote(uint256,uint8)` function from various different
 ## 3. Paymaster for `delegate(...)` and `castVote(...)` calls
 
 This paymaster combines functionality of the above two paymasters into a single contract. It can support either `delegate(...)` or `castVote(...)` call. 
+
+Code: [PaymasterDelegateAndCastVote.sol](https://github.com/meliopolis/governance-paymaster/blob/main/src/PaymasterDelegateAndCastVote.sol)
 
 ### Calldata
 
@@ -217,7 +221,6 @@ Update `PAYMASTER` variable with the deployed paymaster's address in `.env`. The
 ```shell
 $ forge script AbandonScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --skip test --broadcast 
 ```
-
 
 ## Questions/Comments
 
