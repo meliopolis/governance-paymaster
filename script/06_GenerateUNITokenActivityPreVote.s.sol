@@ -11,10 +11,10 @@ import {GovernorBravoDelegator} from "uniswap-gov/GovernorBravoDelegator.sol";
 import {GovernorBravoDelegateStorageV1} from "uniswap-gov/GovernorBravoInterfaces.sol";
 
 // To run:
-// forge script GenerateTokenActivityPreVote --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --verify -vv --skip test
+// forge script GenerateUNITokenActivityPreVote --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --verify -vv --skip test
 // to broadcast, add --broadcast flag
 
-contract GenerateTokenActivityPreVote is Script {
+contract GenerateUNITokenActivityPreVote is Script {
     address public publicKey = vm.envAddress("PUBLIC_KEY");
     uint256 public privateKey = vm.envUint("PRIVATE_KEY");
 
@@ -35,8 +35,8 @@ contract GenerateTokenActivityPreVote is Script {
         // 1. transfer uni to other accounts
         vm.startBroadcast(this.privateKey());
         uni.delegate(user1Address);
-        uni.transferFrom(this.publicKey(), user1Address, 10_000_000_000_000_000_000);
-        uni.transferFrom(this.publicKey(), user2Address, 20_000_000_000_000_000_000);
+        uni.transfer(user1Address, 10_000_000_000_000_000_000);
+        uni.transfer(user2Address, 20_000_000_000_000_000_000);
 
         // 2. delegate UNI from those accounts to each other
         uni.delegate(user2Address);

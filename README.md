@@ -16,7 +16,7 @@ In this repository, we demonstrate several paymasters that don't need a centrali
 * Paymasters
     1. [Paymaster for `delegate(address)`](#1-paymaster-for-delegateaddress-call)
     2. [Paymaster for `castVote(uint256,uint8)`](#2-paymaster-for-castvoteuint256uint8-call)
-    3. [Paymaster for `delegate` and `castVote`](#3-paymaster-for-delegate-and-castvote-calls)
+    3. [Paymaster for `delegate` or `castVote`](#3-paymaster-for-delegate-or-castvote-calls)
 * [How to use](#usage) 
 
 
@@ -45,6 +45,38 @@ One of the reasons on-chain Paymasters are challenging to build is due to strict
 These paymaster respects all the storage access rules. They only access ERC20 Token balances, which is allowed by the [rule #3 in the specifications](https://eips.ethereum.org/EIPS/eip-4337#storage-associated-with-an-address). Additionally, the Paymaster accesses its own storage and that requires it to stake with EntryPoint (which our deploy script handles).
 
 Update: This might be changing in the latest version per Dror and Tom from EF. Waiting to confirm.
+
+### Governor Support
+
+We initially built these paymasters for [`GovernorBravo`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3) and later tested them successfully for OpenZeppelin's [`Governor`](https://docs.openzeppelin.com/contracts/5.x/governance#governor) contract.
+
+<details>
+<summary> Testing with `GovernorBravo`</summary>
+
+Check out scripts `05_DeployGovernorBravo...` to `08_GBCastVote.s.sol`. These scripts will
+
+* deploy all the necessary contracts: `Uni` token, `Timelock`, and `GovernorBravo`
+* generating transfers and delegates
+* create a proposal
+* cast a vote (for an EOA on a local testnet) 
+
+You'll need to update some the variables in `.env` (scripts will let you know).
+</details>
+
+<details>
+<summary> Testing with OpenZeppelin's `Governor`</summary>
+
+Check out scripts `09_DeployOZGovernor...` to `12_OZBCastVote.s.sol`. These scripts will
+
+* deploy all the necessary contracts: `ERC20Test` token, `TimelockController`, and `Governor`
+* generating transfers and delegates
+* create a proposal
+* cast a vote (for an EOA on a local testnet) 
+
+You'll need to update some the variables in `.env` (scripts will let you know).
+</details>
+
+You'll need access to a bundler like [Stackup](https://stackup.sh/) to submit a `userop` with `paymasterAndData`.
 
 ### Other areas to explore
 
@@ -155,7 +187,7 @@ We compare calling the `castVote(uint256,uint8)` function from various different
 
 [!!]: Counterintuitive that a transaction without Paymaster is more gas. We believe this is due to an extra transfer of ETH when no Paymaster is used.
 
-## 3. Paymaster for `delegate(...)` and `castVote(...)` calls
+## 3. Paymaster for `delegate(...)` or `castVote(...)` calls
 
 This paymaster combines functionality of the above two paymasters into a single contract. It can support either `delegate(...)` or `castVote(...)` call. 
 
@@ -175,10 +207,10 @@ Same as the calldatas mentioned above. It can accept either of them - branching 
 
 Deployed at: [0x2cEa8A3135A1eF6E5Dc42E094f043a9Bc4D27bC5](https://sepolia.etherscan.io/address/0x2cEa8A3135A1eF6E5Dc42E094f043a9Bc4D27bC5).
 
-| Wallet | Paymaster | Sample Txn | Gas Used |
-| ------ | --------- | ---------- | -------- |
-| AA - already deployed | `PaymasterDelegateAndCastVote` | [Txn](https://sepolia.etherscan.io/tx/0x9d037f2a60ca643db97b44bb18976b539ec7f46db43e77d41201db306e13f48e) | 161,482 |
-
+| Wallet | Paymaster | Governor | Sample Txn | Gas Used |
+| ------ | --------- | -------- | ---------- | -------- |
+| AA - already deployed | `PaymasterDelegateAndCastVote` | [`GovernorBravo`](https://sepolia.etherscan.io/address/0xfd145be4af08fc07bce4feb6ebbaefae8b69cbf5) | [Txn](https://sepolia.etherscan.io/tx/0x9d037f2a60ca643db97b44bb18976b539ec7f46db43e77d41201db306e13f48e) | 161,482 |
+| AA - already deployed | `PaymasterDelegateAndCastVote` | [`OZGovernor`](https://sepolia.etherscan.io/address/0x71b27a1e1175B1ad0165b16cd7A608B670988CF0) | [Txn](https://sepolia.etherscan.io/tx/0xd5b25c13eafb8e9c984b7f4a48c5aa683632c41c66f060031aedbb907a709e2e) | 149,262 |
 We expect the gas usage of this paymaster to be similar to the above two paymasters.
 
 
