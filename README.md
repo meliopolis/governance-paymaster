@@ -14,9 +14,9 @@ In this repository, we demonstrate several paymasters that don't need a centrali
 
 * [General Overview](#general-overview)
 * Paymasters
-    1. [Paymaster for `delegate(address)` call](#1-paymaster-for-delegateaddress-call)
+    1. [Paymaster for `delegate(address)`](#1-paymaster-for-delegateaddress-call)
     2. [Paymaster for `castVote(uint256,uint8)`](#2-paymaster-for-castvoteuint256uint8-call)
-    3. [Paymaster for `delegate` and `castVote` calls](#3-paymaster-for-delegate-and-castvote-calls)
+    3. [Paymaster for `delegate` and `castVote`](#3-paymaster-for-delegate-and-castvote-calls)
 * [How to use](#usage) 
 
 
