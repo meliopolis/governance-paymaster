@@ -40,11 +40,11 @@ In each of the paymasters below, we specify the exact calldata required for the 
 
 ### Storage access rules
 
-One of the reasons on-chain Paymasters are challenging to build is due to strict storage access rules that prevent attacks.
+~~One of the reasons on-chain Paymasters are challenging to build is due to strict storage access rules that prevent attacks.~~
 
-These paymaster respects all the storage access rules. They only access ERC20 Token balances, which is allowed by the [rule #3 in the specifications](https://eips.ethereum.org/EIPS/eip-4337#storage-associated-with-an-address). Additionally, the Paymaster accesses its own storage and that requires it to stake with EntryPoint (which our deploy script handles).
+~~These paymaster respects all the storage access rules. They only access ERC20 Token balances, which is allowed by the [rule #3 in the specifications](https://eips.ethereum.org/EIPS/eip-4337#storage-associated-with-an-address). Additionally, the Paymaster accesses its own storage and that requires it to stake with EntryPoint (which our deploy script handles).~~
 
-Update: This might be changing in the latest version per Dror and Tom from EF. Waiting to confirm.
+Update: Per conversation with the AA team at EF, these rules have been relaxed in the latest version. Now, Paymasters can access any storage as long as they stake with EntryPoint. Main risk to mitigate: accessing highly volatile storage can be used against a paymaster. It can create situations where a userop can become invalid between validation and execution.
 
 ### Governor Support
 
