@@ -78,7 +78,7 @@ Check out scripts `09_DeployOZGovernor...` to `12_OZBCastVote.s.sol`. These scri
 
 You'll need to update some the variables in `.env` (scripts will let you know).
 </details>  
-<br>  
+
 You'll need access to a bundler like [Stackup](https://stackup.sh/) to submit a `userop` with `paymasterAndData`.
 
 ### Other areas to explore
