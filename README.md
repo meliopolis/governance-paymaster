@@ -1,6 +1,6 @@
 # Governance Paymasters
 
-_This work was funded by the Ethereum Foundation._
+_This work was funded via a grant from the Ethereum Foundation. 🙏_
 
 This repository contains Paymasters that operate **fully on-chain**, as in without requiring a separate centralized backend service that determines whether a transaction should be covered by a Paymaster. 
 
@@ -48,17 +48,17 @@ Update: This might be changing in the latest version per Dror and Tom from EF. W
 
 ### Governor Support
 
-We initially built these paymasters for [`GovernorBravo`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3) and later tested them successfully for OpenZeppelin's [`Governor`](https://docs.openzeppelin.com/contracts/5.x/governance#governor) contract.
+We initially built these paymasters for [`GovernorBravo`](https://etherscan.io/address/0x408ED6354d4973f66138C91495F2f2FCbd8724C3) and later tested them successfully for OpenZeppelin's [`Governor`](https://docs.openzeppelin.com/contracts/5.x/governance#governor) contract with minimal modifications and now they support both types of Governors.
 
-One caveat is that we only support `castVote(uint256,uint8)` function calls for the OZ `Governor`. It also allows casting votes through additional calls like `castVoteWithReason` and `castVoteWithReasonAndParams`. While the paymaster can be extended to support those calls, we believe those can be used to drain the paymasters faster. So, implementing them requires additional checks like limiting length of `reason` or `params`. 
+One caveat is that our implementations only support `delegate(address)` and `castVote(uint256,uint8)` function calls for the OZ `Governor`. Unlike `GovernorBravo`, `Governor` also allows casting votes through additional calls like `castVoteWithReason` and `castVoteWithReasonAndParams`. While the paymaster can be extended to support those calls, we believe those can be used to drain the paymasters faster. So, implementing them requires additional checks like limiting length of `reason` or `params`. 
 
 <details>
-<summary> Testing with `GovernorBravo`</summary>
+<summary> **Testing with `GovernorBravo`**</summary>
 
 Check out scripts `05_DeployGovernorBravo...` to `08_GBCastVote.s.sol`. These scripts will
 
 * deploy all the necessary contracts: `Uni` token, `Timelock`, and `GovernorBravo`
-* generating transfers and delegates
+* generate transfers and delegates
 * create a proposal
 * cast a vote (for an EOA on a local testnet) 
 
@@ -66,18 +66,19 @@ You'll need to update some the variables in `.env` (scripts will let you know).
 </details>
 
 <details>
-<summary> Testing with OpenZeppelin's `Governor`</summary>
-
+<br>
+<summary> **Testing with OpenZeppelin's `Governor`**</summary>
+  
 Check out scripts `09_DeployOZGovernor...` to `12_OZBCastVote.s.sol`. These scripts will
 
 * deploy all the necessary contracts: `ERC20Test` token, `TimelockController`, and `Governor`
-* generating transfers and delegates
+* generate transfers and delegates
 * create a proposal
 * cast a vote (for an EOA on a local testnet) 
 
 You'll need to update some the variables in `.env` (scripts will let you know).
-</details>
-
+</details>  
+<br>  
 You'll need access to a bundler like [Stackup](https://stackup.sh/) to submit a `userop` with `paymasterAndData`.
 
 ### Other areas to explore
@@ -209,12 +210,13 @@ Same as the calldatas mentioned above. It can accept either of them - branching 
 
 Deployed at: [0x2cEa8A3135A1eF6E5Dc42E094f043a9Bc4D27bC5](https://sepolia.etherscan.io/address/0x2cEa8A3135A1eF6E5Dc42E094f043a9Bc4D27bC5).
 
+We expect the gas usage of this paymaster to be similar to the above two paymasters.
+
 | Wallet | Paymaster | Governor | Sample Txn | Gas Used |
 | ------ | --------- | -------- | ---------- | -------- |
 | AA - already deployed | `PaymasterDelegateAndCastVote` | [`GovernorBravo`](https://sepolia.etherscan.io/address/0xfd145be4af08fc07bce4feb6ebbaefae8b69cbf5) | [Txn](https://sepolia.etherscan.io/tx/0x9d037f2a60ca643db97b44bb18976b539ec7f46db43e77d41201db306e13f48e) | 161,482 |
 | AA - already deployed | `PaymasterDelegateAndCastVote` | [`OZGovernor`](https://sepolia.etherscan.io/address/0x71b27a1e1175B1ad0165b16cd7A608B670988CF0) | [Txn](https://sepolia.etherscan.io/tx/0xd5b25c13eafb8e9c984b7f4a48c5aa683632c41c66f060031aedbb907a709e2e) | 149,262 |
 
-We expect the gas usage of this paymaster to be similar to the above two paymasters.
 
 ## Usage
 
