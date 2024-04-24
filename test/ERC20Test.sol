@@ -11,7 +11,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * Sample ERC20 token for testing
  */
 contract ERC20Test is ERC20, ERC20Votes, Ownable {
-    constructor() ERC20("Test Token", "TST") EIP712("Test Token", "1") Ownable(msg.sender) {}
+    constructor() ERC20("Test Token", "TST") EIP712("Test Token", "1") Ownable(msg.sender) {
+        _mint(msg.sender, 1000000000 * 10 ** decimals());
+    }
 
     function _update(address from, address to, uint256 value) internal override(ERC20, ERC20Votes) {
         super._update(from, to, value);

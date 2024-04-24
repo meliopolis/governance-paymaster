@@ -7,6 +7,7 @@ import "../src/PaymasterCastVote.sol";
  * Test Harness for PaymasterCastVote to test `internal` functions
  */
 // solhint-disable func-name-mixedcase
+
 contract PaymasterCastVoteHarness is PaymasterCastVote {
     constructor(IEntryPoint entryPoint, address erc20Address, address governorBravoAddress)
         PaymasterCastVote(entryPoint, erc20Address, governorBravoAddress)

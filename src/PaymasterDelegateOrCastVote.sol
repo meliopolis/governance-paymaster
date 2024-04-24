@@ -32,7 +32,7 @@ error SenderDoesNotHoldAnyERC20Tokens();
  * The paymaster checks to make sure the user holds non-zero amount of ERC20 tokens before paying for gas.
  * It also keeps track of the last time a user delegated their vote, and enforces a minimum wait time between delegations.
  */
-contract PaymasterDelegateAndCastVote is BasePaymaster, Pausable {
+contract PaymasterDelegateOrCastVote is BasePaymaster, Pausable {
     // max ETH, in Wei, that the paymaster is willing to pay for the operation
     // This shouldn't need to be higher than say 0.01 ETH.
     // but it needs to also cover initial deployment in some cases, so it's set to a higher amount.

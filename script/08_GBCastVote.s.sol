@@ -11,10 +11,10 @@ import {GovernorBravoDelegator} from "uniswap-gov/GovernorBravoDelegator.sol";
 import {GovernorBravoDelegateStorageV1} from "uniswap-gov/GovernorBravoInterfaces.sol";
 
 // To run:
-// forge script CastVoteScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY -vv --skip test
+// forge script GBCastVoteScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY -vv --skip test
 // to broadcast, add --broadcast flag
 
-contract CastVoteScript is Script {
+contract GBCastVoteScript is Script {
     address public publicKey = vm.envAddress("PUBLIC_KEY");
     uint256 public privateKey = vm.envUint("PRIVATE_KEY");
 

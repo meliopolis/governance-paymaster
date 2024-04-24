@@ -8,16 +8,16 @@ import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
 import {IPaymaster} from "@account-abstraction/interfaces/IPaymaster.sol";
 import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {ERC20Test} from "./ERC20Test.sol";
-import {PaymasterDelegateAndCastVoteHarness} from "./PaymasterDelegateAndCastVoteHarness.sol";
+import {PaymasterDelegateOrCastVoteHarness} from "./PaymasterDelegateOrCastVoteHarness.sol";
 // solhint-disable-next-line no-global-import
-import "../src/PaymasterDelegateAndCastVote.sol";
+import "../src/PaymasterDelegateOrCastVote.sol";
 
 // solhint-disable func-name-mixedcase
 // solhint-disable custom-errors
 
-contract PaymasterDelegateAndCastVoteTest is Test {
-    PaymasterDelegateAndCastVote public paymaster;
-    PaymasterDelegateAndCastVoteHarness public paymasterHarness;
+contract PaymasterDelegateOrCastVoteTest is Test {
+    PaymasterDelegateOrCastVote public paymaster;
+    PaymasterDelegateOrCastVoteHarness public paymasterHarness;
     ERC20Test public erc20;
     address public governorBravoAddress = 0x408ED6354d4973f66138C91495F2f2FCbd8724C3;
     address public owner = vm.envAddress("PUBLIC_KEY");
@@ -61,8 +61,8 @@ contract PaymasterDelegateAndCastVoteTest is Test {
         IEntryPoint entryPoint = IEntryPoint(entryPointAddress);
         vm.startPrank(owner, owner);
         erc20 = new ERC20Test();
-        paymaster = new PaymasterDelegateAndCastVote(entryPoint, address(erc20), governorBravoAddress);
-        paymasterHarness = new PaymasterDelegateAndCastVoteHarness(entryPoint, address(erc20), governorBravoAddress);
+        paymaster = new PaymasterDelegateOrCastVote(entryPoint, address(erc20), governorBravoAddress);
+        paymasterHarness = new PaymasterDelegateOrCastVoteHarness(entryPoint, address(erc20), governorBravoAddress);
         correctCallDataForDelegate = bytes.concat(
             hex"b61d27f6", // execute signature
             bytes32(uint256(uint160(address(erc20)))),
@@ -416,7 +416,7 @@ contract PaymasterDelegateAndCastVoteTest is Test {
     function test_validatePaymasterUserOpUserOnBlocklist() public {
         // add Alice to blocklist
         paymasterHarness.exposed_postOp(
-            IPaymaster.PostOpMode.opReverted, abi.encode(alice, PaymasterDelegateAndCastVote.Action.DELEGATE)
+            IPaymaster.PostOpMode.opReverted, abi.encode(alice, PaymasterDelegateOrCastVote.Action.DELEGATE)
         );
         UserOperation memory userOp = _userOpsHelper(correctCallDataForDelegate, alice);
         vm.expectRevert(SenderOnBlocklist.selector);
@@ -442,10 +442,10 @@ contract PaymasterDelegateAndCastVoteTest is Test {
         erc20.mint(alice, 100);
         UserOperation memory userOp = _userOpsHelper(correctCallDataForDelegate, alice);
         (bytes memory context, uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
-        (address caller, PaymasterDelegateAndCastVote.Action action) =
-            abi.decode(context, (address, PaymasterDelegateAndCastVote.Action));
+        (address caller, PaymasterDelegateOrCastVote.Action action) =
+            abi.decode(context, (address, PaymasterDelegateOrCastVote.Action));
         assert(caller == alice);
-        assert(action == PaymasterDelegateAndCastVote.Action.DELEGATE);
+        assert(action == PaymasterDelegateOrCastVote.Action.DELEGATE);
         address validation = address(uint160(validationData));
         uint48 validUntil = uint48(validationData >> 160);
         uint48 validAfter = uint48(validationData >> (160 + 48));
@@ -462,10 +462,10 @@ contract PaymasterDelegateAndCastVoteTest is Test {
         erc20.mint(alice, 100);
         UserOperation memory userOp = _userOpsHelper(correctCallDataForCastVote, alice);
         (bytes memory context, uint256 validationData) = paymasterHarness.exposed_validaterPaymasterUserOp(userOp, 100);
-        (address caller, PaymasterDelegateAndCastVote.Action action) =
-            abi.decode(context, (address, PaymasterDelegateAndCastVote.Action));
+        (address caller, PaymasterDelegateOrCastVote.Action action) =
+            abi.decode(context, (address, PaymasterDelegateOrCastVote.Action));
         assert(caller == alice);
-        assert(action == PaymasterDelegateAndCastVote.Action.CAST_VOTE);
+        assert(action == PaymasterDelegateOrCastVote.Action.CAST_VOTE);
         assert(validationData == 0);
     }
 
@@ -480,7 +480,7 @@ contract PaymasterDelegateAndCastVoteTest is Test {
 
         // pretend first call went through
         paymasterHarness.exposed_postOp(
-            IPaymaster.PostOpMode.opSucceeded, abi.encode(alice, PaymasterDelegateAndCastVote.Action.DELEGATE)
+            IPaymaster.PostOpMode.opSucceeded, abi.encode(alice, PaymasterDelegateOrCastVote.Action.DELEGATE)
         );
 
         // call second time
@@ -509,7 +509,7 @@ contract PaymasterDelegateAndCastVoteTest is Test {
 
         // pretend first call went through
         paymasterHarness.exposed_postOp(
-            IPaymaster.PostOpMode.opSucceeded, abi.encode(alice, PaymasterDelegateAndCastVote.Action.CAST_VOTE)
+            IPaymaster.PostOpMode.opSucceeded, abi.encode(alice, PaymasterDelegateOrCastVote.Action.CAST_VOTE)
         );
 
         // call second time

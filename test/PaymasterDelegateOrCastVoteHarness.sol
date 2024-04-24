@@ -2,14 +2,15 @@
 pragma solidity ^0.8.13;
 
 // solhint-disable-next-line no-global-import
-import "../src/PaymasterDelegateAndCastVote.sol";
+import "../src/PaymasterDelegateOrCastVote.sol";
 /**
  * Test Harness for PaymasterCastVote to test `internal` functions
  */
 // solhint-disable func-name-mixedcase
-contract PaymasterDelegateAndCastVoteHarness is PaymasterDelegateAndCastVote {
+
+contract PaymasterDelegateOrCastVoteHarness is PaymasterDelegateOrCastVote {
     constructor(IEntryPoint entryPoint, address erc20Address, address governorBravoAddress)
-        PaymasterDelegateAndCastVote(entryPoint, erc20Address, governorBravoAddress)
+        PaymasterDelegateOrCastVote(entryPoint, erc20Address, governorBravoAddress)
     {}
 
     function exposed_verifyERC20Holdings(address user) public view {
